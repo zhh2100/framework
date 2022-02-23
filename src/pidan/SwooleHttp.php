@@ -145,16 +145,5 @@ class SwooleHttp
 		return $this;
 	}
 
-	/**
-	 * HttpEnd
-	 * @param Response $response
-	 * @return void
-	 */
-	public function end(): void
-	{
-		$this->app->event->trigger('HttpEnd');
-		// 写入日志
-		//$this->app->log->save();
-	}
 
 }
