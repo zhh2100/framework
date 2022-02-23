@@ -1,0 +1,21 @@
+{
+    "name": "zhh2100/framework",
+    "description": "皮蛋框架",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "zhh2100",
+            "email": "zhh2100@qq.com"
+        }
+    ],
+    "require": {
+    	"php": ">=7.1.0",
+    },
+    "autoload": {
+        "files": [],
+        "psr-4": {
+            "pidan\\": "src/pidan/"
+        }
+    },
+    "minimum-stability": "dev"
+}
