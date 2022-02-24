@@ -251,22 +251,35 @@ class App extends Container
 	{
 		$this->initialized = true;
 
-		$this->appDebug = defined('DEBUG') && DEBUG ? true : false;
+		$this->debugModeInit();
 
-		$this->config->load($this->appPath.'config.php');
+		$this->load();
 
-		ini_set('display_errors', $this->appDebug ? 'On' : 'Off');
+		// 监听AppInit
+		$this->event->trigger('AppInit');
 
-		if (!$this->runningInConsole()) {
-			//重新申请一块比较大的buffer
-			if (ob_get_level() > 0) {
-				$output = ob_get_clean();
-			}
-			ob_start();
-			if (!empty($output)) {
-				echo $output;
-			}
+		date_default_timezone_set($this->config->get('app.default_timezone'));
+
+		$services=[];
+		if (is_file($this->rootPath . 'vendor/services.php'))
+			$services = include $this->rootPath . 'vendor/services.php';
+		foreach ($services as $service) {
+			$this->register($service);
 		}
+
+		$this->bootService();
+		$this->G('initialized');
+		return $this;
+	}
+
+    /**
+     * 加载应用文件和配置
+     * @access protected
+     * @return void
+     */
+    public function load(): void
+    {
+		$this->config->load($this->appPath.'config.php');
 
 		include_once $this->pidanPath . 'helper.php';
 
@@ -284,25 +297,7 @@ class App extends Container
 				$this->register($service);
 			}
 		}
-
-		// 监听AppInit
-		$this->event->trigger('AppInit');
-
-		date_default_timezone_set($this->config->get('app.default_timezone'));
-
-		$services=[];
- 		if (is_file($this->rootPath . 'vendor/services.php'))
- 			$services = include $this->rootPath . 'vendor/services.php';
-		foreach ($services as $service) {
-			$this->register($service);
-		}
-
-		$this->bootService();
-		$this->G('initialized');
-		return $this;
-	}
-
-
+    }
 	/**
 	 * 注册服务
 	 * @access public
@@ -339,6 +334,29 @@ class App extends Container
 			return $value instanceof $name;
 		}, ARRAY_FILTER_USE_BOTH))[0] ?? null;
 	}
+	/**
+	 * 调试模式设置
+	 * @access protected
+	 * @return void
+	 */
+	public function debugModeInit(): void
+	{
+		$this->appDebug = defined('DEBUG') && DEBUG ? true : false;
+
+		ini_set('display_errors', $this->appDebug ? 'On' : 'Off');
+
+		if (!$this->runningInConsole()) {
+			//重新申请一块比较大的buffer
+			if (ob_get_level() > 0) {
+				$output = ob_get_clean();
+			}
+			ob_start();
+			if (!empty($output)) {
+				echo $output;
+			}
+		}
+	}
+
 	/**
 	 * 解析应用类的类名
 	 * @access public
@@ -405,13 +423,17 @@ class App extends Container
 	function G($start,$end='',$dec=5) {
 		static $_info       =   array();
 		static $_mem        =   array();
-		if(is_float($end)) { // 记录时间        G('begin',3889999999.12) 
+		if($end===null){
+			//return count($_mem);
+			unset($_info[$start]);
+			unset($_mem[$start]);
+		}elseif(is_float($end)) { // 记录时间        G('begin',3889999999.12) 
 			$_info[$start]  =   $end;
 		}elseif(!empty($end)){ // 统计时间和内存使用          G('begin','end')   end可以没记录过
 			if(!isset($_info[$end])) $_info[$end]       =  microtime(TRUE);
 			if($dec=='m'){
 				if(!isset($_mem[$end])) $_mem[$end]     =  memory_get_usage();
-				return number_format(($_mem[$end]-$_mem[$start])/1024);          
+				return number_format(($_mem[$end]-$_mem[$start])/1024);  
 			}else{
 				return number_format(($_info[$end]-$_info[$start]),$dec);
 			}       
