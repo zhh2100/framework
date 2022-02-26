@@ -420,29 +420,29 @@ class App extends Container
 	 * @param integer|string $dec 小数位或者m 
 	 * @return mixed
 	 */
-	function G($start,$end='',$dec=5) {
-		static $_info       =   array();
-		static $_mem        =   array();
+	function G($start,$end='',$dec=5,$ttl=0) {
+		$_info       =   APCU_PREFIX.'g_info_';	
+		$_mem        =   APCU_PREFIX.'g_mem_';
 		if($end===null){
 			//return count($_mem);
-			unset($_info[$start]);
-			unset($_mem[$start]);
+			apcu_delete($_info.$start);
+			apcu_delete($_mem.$start);
 		}elseif(is_float($end)) { // 记录时间        G('begin',3889999999.12) 
-			$_info[$start]  =   $end;
+			apcu_store($_info.$start,$end,$ttl);
 		}elseif(!empty($end)){ // 统计时间和内存使用          G('begin','end')   end可以没记录过
-			if(!isset($_info[$end])) $_info[$end]       =  microtime(TRUE);
+			if(!apcu_exists($_info.$end)) apcu_store($_info.$end, microtime(TRUE),$ttl);
 			if($dec=='m'){
-				if(!isset($_mem[$end])) $_mem[$end]     =  memory_get_usage();
-				return number_format(($_mem[$end]-$_mem[$start])/1024);  
+				if(!apcu_exists($_mem.$end)) apcu_store($_mem.$end, memory_get_usage(),$ttl);
+				return number_format((apcu_fetch($_mem.$end)-apcu_fetch($_mem.$start))/1024);  
 			}else{
-				return number_format(($_info[$end]-$_info[$start]),$dec);
+				return number_format((apcu_fetch($_info.$end)-apcu_fetch($_info.$start)),$dec);
 			}       
 				
 		}elseif(strpos($start,'?')===0){                            //G('?begin') 
-			return $dec=='m'? $_mem[substr($start,1)] : $_info[substr($start,1)];
+			return $dec=='m'?  apcu_fetch($_mem.substr($start,1)) : apcu_fetch($_info.substr($start,1));
 		}else{ // 记录时间和内存使用      G('begin') 
-			$_info[$start]  =  microtime(TRUE);
-			$_mem[$start]   =  memory_get_usage();
+			apcu_store($_info.$start, microtime(TRUE),$ttl);
+			apcu_store($_mem.$start, memory_get_usage(),$ttl);
 		}
 	}
 
