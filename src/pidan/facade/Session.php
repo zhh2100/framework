@@ -6,9 +6,9 @@ namespace pidan\facade;
 use pidan\Facade;
 
 /**
- * @see \think\Session
- * @package think\facade
- * @mixin \think\Session
+ * @see \pidan\Session
+ * @package pidan\facade
+ * @mixin \pidan\Session
  * @method static mixed getConfig(null|string $name = null, mixed $default = null) 获取Session配置
  * @method static string|null getDefaultDriver() 默认驱动
  */

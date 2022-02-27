@@ -10,7 +10,7 @@ use pidan\validate\ValidateRule;
 
 /**
  * 数据验证类
- * @package think
+ * @package pidan
  */
 class Validate
 {

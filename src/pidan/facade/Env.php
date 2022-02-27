@@ -6,9 +6,9 @@ namespace pidan\facade;
 use pidan\Facade;
 
 /**
- * @see \think\Env
- * @package think\facade
- * @mixin \think\Env
+ * @see \pidan\Env
+ * @package pidan\facade
+ * @mixin \pidan\Env
  * @method static void load(string $file) 读取环境变量定义文件
  * @method static mixed get(string $name = null, mixed $default = null) 获取环境变量值
  * @method static void set(string|array $env, mixed $value = null) 设置环境变量值

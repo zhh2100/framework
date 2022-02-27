@@ -12,8 +12,8 @@ use pidan\Facade;
 
 /**
  * Class Console
- * @package think\facade
- * @mixin \think\Console
+ * @package pidan\facade
+ * @mixin \pidan\Console
  * @method static Output|Buffer call(string $command, array $parameters = [], string $driver = 'buffer')
  * @method static int run() 执行当前的指令
  * @method static int doRun(Input $input, Output $output) 执行指令

@@ -6,23 +6,23 @@ namespace pidan\facade;
 use pidan\Facade;
 
 /**
- * @see \think\Validate
- * @package think\facade
- * @mixin \think\Validate
- * @method static void setLang(\think\Lang $lang) 设置Lang对象
- * @method static void setDb(\think\Db $db) 设置Db对象
- * @method static void setRequest(\think\Request $request) 设置Request对象
- * @method static \think\Validate rule(string|array $name, mixed $rule = '') 添加字段验证规则
- * @method static \think\Validate extend(string $type, callable $callback = null, string $message = null) 注册验证（类型）规则
+ * @see \pidan\Validate
+ * @package pidan\facade
+ * @mixin \pidan\Validate
+ * @method static void setLang(\pidan\Lang $lang) 设置Lang对象
+ * @method static void setDb(\pidan\Db $db) 设置Db对象
+ * @method static void setRequest(\pidan\Request $request) 设置Request对象
+ * @method static \pidan\Validate rule(string|array $name, mixed $rule = '') 添加字段验证规则
+ * @method static \pidan\Validate extend(string $type, callable $callback = null, string $message = null) 注册验证（类型）规则
  * @method static void setTypeMsg(string|array $type, string $msg = null) 设置验证规则的默认提示信息
  * @method static Validate message(array $message) 设置提示信息
- * @method static \think\Validate scene(string $name) 设置验证场景
+ * @method static \pidan\Validate scene(string $name) 设置验证场景
  * @method static bool hasScene(string $name) 判断是否存在某个验证场景
- * @method static \think\Validate batch(bool $batch = true) 设置批量验证
- * @method static \think\Validate failException(bool $fail = true) 设置验证失败后是否抛出异常
- * @method static \think\Validate only(array $fields) 指定需要验证的字段列表
- * @method static \think\Validate remove(string|array $field, mixed $rule = null) 移除某个字段的验证规则
- * @method static \think\Validate append(string|array $field, mixed $rule = null) 追加某个字段的验证规则
+ * @method static \pidan\Validate batch(bool $batch = true) 设置批量验证
+ * @method static \pidan\Validate failException(bool $fail = true) 设置验证失败后是否抛出异常
+ * @method static \pidan\Validate only(array $fields) 指定需要验证的字段列表
+ * @method static \pidan\Validate remove(string|array $field, mixed $rule = null) 移除某个字段的验证规则
+ * @method static \pidan\Validate append(string|array $field, mixed $rule = null) 追加某个字段的验证规则
  * @method static bool check(array $data, array $rules = []) 数据自动验证
  * @method static bool checkRule(mixed $value, mixed $rules) 根据验证规则验证数据
  * @method static bool confirm(mixed $value, mixed $rule, array $data = [], string $field = '') 验证是否和某个字段的值一致

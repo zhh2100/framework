@@ -1,81 +1,108 @@
 <?php
+declare (strict_types = 1);
+
 namespace pidan;
 
-interface Db
+/**
+ * 数据库管理类
+ * @package pidan
+ * @property Config $config
+ */
+class Db extends DbManager
 {
-	
-	/**
-	 * 开始事务
-	 */
-	public function beginTrans();
+    /**
+     * @param Event  $event
+     * @param Config $config
+     * @param Log    $log
+     * @param Cache  $cache
+     * @return Db
+     * @codeCoverageIgnore
+     */
+    public static function __make(Event $event, Config $config, Log $log, Cache $cache)
+    {
+        $db = new static();
+        $db->setConfig($config);
+        $db->setEvent($event);
+        $db->setLog($log);
 
-	/**
-	 * 提交事务
-	 */
-	public function commitTrans();
+        $store = $db->getConfig('cache_store');
+        $db->setCache($cache->store($store));
+        $db->triggerSql();
 
-	/**
-	 * 事务回滚
-	 */
-	public function rollBackTrans();
+        return $db;
+    }
 
-	/**
-	* 关闭连接
-	*/
-	public function closeConnection();
+    /**
+     * 注入模型对象
+     * @access public
+     * @return void
+     */
+    protected function modelMaker()
+    {
+    }
 
+    /**
+     * 设置配置对象
+     * @access public
+     * @param Config $config 配置对象
+     * @return void
+     */
+    public function setConfig($config): void
+    {
+        $this->config = $config;
+    }
 
-	public function prefix($query);
-	/**
-	 * 返回最后一条执行的 sql
-	 *
-	 * @return  string
-	 */
-	public function lastSQL();
-	/**
-	 * 执行 SQL   统一调用它查询   不得已才用execute
-	 *
-	 * @param string $query
-	 * @param array  $params
-	 * @param int    $fetchmode
-	 * @param int    $exec  	执行完就返回，用于手动后续操作  如取单个值
-	 * @return mixed
-	 */
-	public function query($query, $params, $fetchmode,$exec);
-	/**
-	 * 返回一列
-	 *
-	 * @param  string $query
-	 * @param  array  $params
-	 * @return array
-	 */
-	public function column($query, $params);
-	/**
-	 * 返回一行
-	 *
-	 * @param  string $query
-	 * @param  array  $params
-	 * @param  int    $fetchmode
-	 * @return array
-	 */
-	public function row($query, $params, $fetchmode);
-	/**
-	 * 返回单个值
-	 *
-	 * @param  string $query
-	 * @param  array  $params
-	 * @return string
-	 */
-	public function single($query, $params);
-	/**
-	 * 返回 lastInsertId
-	 *
-	 * @return string
-	 */
-	public function lastInsertId();
-	public function count($query, $params);
-	public function insert($table, $data);
-	public function update($table, $data, $condition);
+    /**
+     * 获取配置参数
+     * @access public
+     * @param string $name    配置参数
+     * @param mixed  $default 默认值
+     * @return mixed
+     */
+    public function getConfig(string $name = '', $default = null)
+    {
+        if ('' !== $name) {
+            return $this->config->get('database.' . $name, $default);
+        }
 
+        return $this->config->get('database', []);
+    }
 
+    /**
+     * 设置Event对象
+     * @param Event $event
+     */
+    public function setEvent(Event $event): void
+    {
+        $this->event = $event;
+    }
+
+    /**
+     * 注册回调方法
+     * @access public
+     * @param string   $event    事件名
+     * @param callable $callback 回调方法
+     * @return void
+     */
+    public function event(string $event, callable $callback): void
+    {
+        if ($this->event) {
+            $this->event->listen('db.' . $event, $callback);
+        }
+    }
+
+    /**
+     * 触发事件
+     * @access public
+     * @param string $event  事件名
+     * @param mixed  $params 传入参数
+     * @param bool   $once
+     * @return mixed
+     */
+    public function trigger(string $event, $params = null, bool $once = false)
+    {
+        if ($this->event) {
+            return $this->event->trigger('db.' . $event, $params, $once);
+        }
+    }
 }

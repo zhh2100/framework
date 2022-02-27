@@ -6,9 +6,9 @@ namespace pidan\facade;
 use pidan\Facade;
 
 /**
- * @see \think\Cookie
- * @package think\facade
- * @mixin \think\Cookie
+ * @see \pidan\Cookie
+ * @package pidan\facade
+ * @mixin \pidan\Cookie
  * @method static mixed get(mixed $name = '', string $default = null) 获取cookie
  * @method static bool has(string $name) 是否存在Cookie参数
  * @method static void set(string $name, string $value, mixed $option = null) Cookie 设置

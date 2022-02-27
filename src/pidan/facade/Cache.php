@@ -8,9 +8,9 @@ use pidan\cache\TagSet;
 use pidan\Facade;
 
 /**
- * @see \think\Cache
- * @package think\facade
- * @mixin \think\Cache
+ * @see \pidan\Cache
+ * @package pidan\facade
+ * @mixin \pidan\Cache
  * @method static string|null getDefaultDriver() 默认驱动
  * @method static mixed getConfig(null|string $name = null, mixed $default = null) 获取缓存配置
  * @method static array getStoreConfig(string $store, string $name = null, null $default = null) 获取驱动配置

@@ -74,6 +74,7 @@ class App extends Container
 		'console'                 => Console::class,
 		'route'                   => Route::class,
 		'lang'                    => Lang::class,
+		'session'                 => Session::class,
 	];
 	/**
 	 * 架构方法

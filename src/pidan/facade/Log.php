@@ -8,20 +8,20 @@ use pidan\log\Channel;
 use pidan\log\ChannelSet;
 
 /**
- * @see \think\Log
- * @package think\facade
- * @mixin \think\Log
+ * @see \pidan\Log
+ * @package pidan\facade
+ * @mixin \pidan\Log
  * @method static string|null getDefaultDriver() 默认驱动
  * @method static mixed getConfig(null|string $name = null, mixed $default = null) 获取日志配置
  * @method static array getChannelConfig(string $channel, null $name = null, null $default = null) 获取渠道配置
  * @method static Channel|ChannelSet channel(string|array $name = null) driver() 的别名
  * @method static mixed createDriver(string $name)
- * @method static \think\Log clear(string|array $channel = '*') 清空日志信息
- * @method static \think\Log close(string|array $channel = '*') 关闭本次请求日志写入
+ * @method static \pidan\Log clear(string|array $channel = '*') 清空日志信息
+ * @method static \pidan\Log close(string|array $channel = '*') 关闭本次请求日志写入
  * @method static array getLog(string $channel = null) 获取日志信息
  * @method static bool save() 保存日志信息
- * @method static \think\Log record(mixed $msg, string $type = 'info', array $context = [], bool $lazy = true) 记录日志信息
- * @method static \think\Log write(mixed $msg, string $type = 'info', array $context = []) 实时写入日志信息
+ * @method static \pidan\Log record(mixed $msg, string $type = 'info', array $context = [], bool $lazy = true) 记录日志信息
+ * @method static \pidan\Log write(mixed $msg, string $type = 'info', array $context = []) 实时写入日志信息
  * @method static Event listen($listener) 注册日志写入事件监听
  * @method static void log(string $level, mixed $message, array $context = []) 记录日志信息
  * @method static void emergency(mixed $message, array $context = []) 记录emergency信息
