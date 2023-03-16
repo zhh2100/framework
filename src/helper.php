@@ -187,7 +187,7 @@ function request(): \pidan\Request
  */
 function response($data = '', $code = 200, $header = [], $type = 'html'): Response
 {
-	return app('Response')->create($data, $type, $code)->header($header);
+	return app('response')->create($data, $type, $code)->header($header);
 }
 
 /**
