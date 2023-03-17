@@ -62,21 +62,27 @@ class App extends Container
 	 * @var array
 	 */
 	protected $bind = [
-		'request'                 => Request::class,
-		'http'                    => Http::class,
-		'event'                   => Event::class,
-		'event'                   => Event::class,
-		'middleware'              => Middleware::class,
-		'config'                  => Config::class,
-		'db'                  	  => Mysql::class,
-		'cache'                   => Cache::class,
-		'cookie'                  => Cookie::class,
-		'console'                 => Console::class,
+        'app'                     => App::class,
+        'cache'                   => Cache::class,
+        'config'                  => Config::class,
+        'console'                 => Console::class,
+        'cookie'                  => Cookie::class,
+        'db'                      => Db::class,
+        'event'                   => Event::class,
+        'http'                    => Http::class,
+        'lang'                    => Lang::class,
+        'log'                     => Log::class,
+        'middleware'              => Middleware::class,
+        'request'                 => Request::class,
+        'response'                => Response::class,
 		'route'                   => Route::class,
-		'lang'                    => Lang::class,
 		'session'                 => Session::class,
-		'log'                     => Log::class,
-	];
+        'pidan\DbManager'         => Db::class,
+        'pidan\LogManager'        => Log::class,
+        'pidan\CacheManager'      => Cache::class,
+        // 接口依赖注入
+        'Psr\Log\LoggerInterface' => Log::class,
+    ];
 	/**
 	 * 架构方法
 	 * @access public

@@ -9,6 +9,8 @@ use DateInterval;
 use DateTime;
 use DateTimeInterface;
 use Exception;
+use Psr\SimpleCache\CacheInterface;
+
 use pidan\Container;
 use InvalidArgumentException;
 use throwable;
@@ -16,7 +18,7 @@ use throwable;
 /**
  * 缓存基础类
  */
-abstract class Driver
+abstract class Driver implements CacheInterface
 {
     /**
      * 驱动句柄

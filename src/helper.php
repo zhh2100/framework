@@ -1,6 +1,6 @@
 <?php
 declare (strict_types = 1);
-
+use pidan\Response;
 //把网址wwww.ma863.comj/blog/show/id/1 转换成$_GET参数      app=blog   act=show   id=1
 function dispatcher(){
 	$var=array();
@@ -187,7 +187,7 @@ function request(): \pidan\Request
  */
 function response($data = '', $code = 200, $header = [], $type = 'html'): Response
 {
-	return app('response')->create($data, $type, $code)->header($header);
+	return Response::create($data, $type, $code)->header($header);
 }
 
 /**
