@@ -51,6 +51,7 @@ abstract class Dispatch
 		$this->dispatch = $dispatch;
 		$this->param    = $param;
 	}
+
 	public function init(App $app)
 	{
 		$this->app = $app;
@@ -58,7 +59,7 @@ abstract class Dispatch
 		// 执行路由后置操作
 		$this->doRouteAfter();
 	}
-	
+
 	/**
 	 * 执行路由调度
 	 * @access public
@@ -75,7 +76,6 @@ abstract class Dispatch
 
 			return Response::create('', 'html', 204)->header(['Allow' => implode(', ', $allow)]);
 		}
-
 		$data = $this->exec();
 		return $this->autoResponse($data);
 	}
@@ -98,7 +98,6 @@ abstract class Dispatch
 
 		return $response;
 	}
-
 
 	/**
 	 * 检查路由后置操作
@@ -135,7 +134,114 @@ abstract class Dispatch
 		}
 	}
 
+	/**
+	 * 路由绑定模型实例
+	 * @access protected
+	 * @param array $bindModel 绑定模型
+	 * @param array $matches   路由变量
+	 * @return void
+	 */
+	protected function createBindModel(array $bindModel, array $matches): void
+	{
+		foreach ($bindModel as $key => $val) {
+			if ($val instanceof \Closure) {
+				$result = $this->app->invokeFunction($val, $matches);
+			} else {
+				$fields = explode('&', $key);
+
+				if (is_array($val)) {
+					[$model, $exception] = $val;
+				} else {
+					$model     = $val;
+					$exception = true;
+				}
+
+				$where = [];
+				$match = true;
+
+				foreach ($fields as $field) {
+					if (!isset($matches[$field])) {
+						$match = false;
+						break;
+					} else {
+						$where[] = [$field, '=', $matches[$field]];
+					}
+				}
+
+				if ($match) {
+					$result = $model::where($where)->failException($exception)->find();
+				}
+			}
+
+			if (!empty($result)) {
+				// 注入容器
+				$this->app->instance(get_class($result), $result);
+			}
+		}
+	}
+
+	/**
+	 * 验证数据
+	 * @access protected
+	 * @param array $option
+	 * @return void
+	 * @throws \pidan\exception\ValidateException
+	 */
+	protected function autoValidate(array $option): void
+	{
+		[$validate, $scene, $message, $batch] = $option;
+
+		if (is_array($validate)) {
+			// 指定验证规则
+			$v = new Validate();
+			$v->rule($validate);
+		} else {
+			// 调用验证器
+			$class = false !== strpos($validate, '\\') ? $validate : $this->app->parseClass('validate', $validate);
+
+			$v = new $class();
+
+			if (!empty($scene)) {
+				$v->scene($scene);
+			}
+		}
+
+		/** @var Validate $v */
+		$v->message($message)
+			->batch($batch)
+			->failException(true)
+			->check($this->request->param());
+	}
+
+	public function getDispatch()
+	{
+		return $this->dispatch;
+	}
+
+	public function getParam(): array
+	{
+		return $this->param;
+	}
+
 	abstract public function exec();
 
+	public function __sleep()
+	{
+		return ['rule', 'dispatch', 'param', 'controller', 'actionName'];
+	}
 
+	public function __wakeup()
+	{
+		$this->app     = Container::pull('app');
+		$this->request = $this->app->request;
+	}
+
+	public function __debugInfo()
+	{
+		return [
+			'dispatch' => $this->dispatch,
+			'param'    => $this->param,
+			'rule'     => $this->rule,
+		];
+	}
 }

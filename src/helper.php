@@ -1,22 +1,7 @@
 <?php
 declare (strict_types = 1);
 use pidan\Response;
-//把网址wwww.ma863.comj/blog/show/id/1 转换成$_GET参数      app=blog   act=show   id=1
-function dispatcher(){
-	$var=array();
-	$request_uri =  trim($_SERVER['REQUEST_URI'],'/');
-	$part =  pathinfo($request_uri);
-	if($part['dirname'] && $request_uri!='index.php'){
-		$part['dirname'].='/'.$part['filename'];
-		$paths=explode('/',trim($part['dirname'],'/'));
-		$var['app']=array_shift($paths);
-		$var['act']=array_shift($paths);
-		for($i=0;$i<count($paths)/2;$i++){
-			$var[$paths[$i*2]]=$paths[$i*2+1];
-		}
-	}
-	$_GET   =  array_merge($var,$_GET);
-}
+use think\route\Url as UrlBuild;
 
 /**
  * 快速获取容器中的实例 支持依赖注入
@@ -178,6 +163,19 @@ function request(): \pidan\Request
 }
 
 /**
+ * Url生成
+ * @param string      $url    路由地址
+ * @param array       $vars   变量
+ * @param bool|string $suffix 生成的URL后缀
+ * @param bool|string $domain 域名
+ * @return UrlBuild
+ */
+function url(string $url = '', array $vars = [], $suffix = true, $domain = false): UrlBuild
+{
+    return app('route')->buildUrl($url, $vars)->suffix($suffix)->domain($domain);
+}
+
+/**
  * 创建普通 Response 对象实例
  * @param mixed      $data   输出数据
  * @param int|string $code   状态码
@@ -215,6 +213,75 @@ function session($name = '', $value = '')
 		$session->set($name, $value);
 	}
 }
+
+/**
+ * 缓存管理
+ * @param string $name    缓存名称
+ * @param mixed  $value   缓存值
+ * @param mixed  $options 缓存参数
+ * @param string $tag     缓存标签
+ * @return mixed
+ */
+function cache(string $name = null, $value = '', $options = null, $tag = null)
+{
+    if (is_null($name)) return app('cache');
+  
+    $cache=app('cache');
+    if ('' === $value) {
+        // 获取缓存
+        return 0 === strpos($name, '?') ? $cache->has(substr($name, 1)) : $cache->get($name);
+    } elseif (is_null($value)) {
+        // 删除缓存
+        return $cache->delete($name);
+    }
+
+    // 缓存数据
+    if (is_array($options)) {
+        $expire = $options['expire'] ?? null; //修复查询缓存无法设置过期时间
+    } else {
+        $expire = $options;
+    }
+
+    if (is_null($tag)) {
+        return $cache->set($name, $value, $expire);
+    } else {
+        return $cache->tag($tag)->set($name, $value, $expire);
+    }
+}
+
+/**
+ * 生成验证对象
+ * @param string|array $validate      验证器类名或者验证规则数组
+ * @param array        $message       错误提示信息
+ * @param bool         $batch         是否批量验证
+ * @param bool         $failException 是否抛出异常
+ * @return Validate
+ */
+function validate($validate = '', array $message = [], bool $batch = false, bool $failException = true)//: Validate
+{
+    if (is_array($validate) || '' === $validate) {
+        $v = new Validate();
+        if (is_array($validate)) {
+            $v->rule($validate);
+        }
+    } else {
+        if (strpos($validate, '.')) {
+            // 支持场景
+            [$validate, $scene] = explode('.', $validate);
+        }
+
+        $class = false !== strpos($validate, '\\') ? $validate : app()->parseClass('validate', $validate);
+
+        $v = new $class();
+
+        if (!empty($scene)) {
+            $v->scene($scene);
+        }
+    }
+
+    return $v->message($message)->batch($batch)->failException($failException);
+}
+
 
 /**
  * 用在单线程中 共用redis

@@ -531,7 +531,7 @@ class Request implements ArrayAccess
 	}
 
 	/**
-	 * 设置URL访问根地址
+	 * 设置URL访问根地址 appPATH
 	 * @access public
 	 * @param  string $url URL地址
 	 * @return $this

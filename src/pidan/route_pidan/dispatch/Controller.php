@@ -101,7 +101,7 @@ class Controller extends Dispatch
 				return $this->autoResponse($data);
 			});
 	}
-
+	
 	/**
 	 * 使用反射机制注册控制器中间件
 	 * @access public
@@ -144,7 +144,7 @@ class Controller extends Dispatch
 			}
 		}
 	}
-
+	
 	/**
 	 * 实例化访问控制器
 	 * @access public
@@ -169,4 +169,6 @@ class Controller extends Dispatch
 
 		throw new \RuntimeException('class not exists:' . $class);
 	}
+
+	
 }

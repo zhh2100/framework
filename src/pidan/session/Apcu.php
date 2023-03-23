@@ -30,10 +30,10 @@ class Apcu{
 
 		//如果不存在  创建cookie与session
 		if(empty($id) || !apcu_exists($id)) {
-
+            $count=0;
 			do{
-				$id=md5(microtime(true) . session_create_id());
-				$id=$config['prefix'].$id;
+                if(empty($id) || $count>0)$id=$config['prefix'].md5(number_format(microtime(true),10));
+                $count++;
 			}while(apcu_exists($id));
 
 			apcu_store($id, [],$config['expire']);
@@ -58,8 +58,8 @@ class Apcu{
 	* @return mixed true成功  false失败
 	*/
  	public function set($key, $value) {
- 		$this->data[$key]=$value;
-		return apcu_store($this->id,$this->data,$this->expire);//true成功  false失败
+        $this->data[$key]=$value;
+        return apcu_store($this->id,$this->data,$this->expire); //true成功  false失败
 	}
 	public function delete($key){
  		if(isset($this->data[$key])){
@@ -80,7 +80,8 @@ class Apcu{
 		return $default;
 	}
  	public function has($key) {
-		return isset($this->data[$key]);//成功true  失败false
+        #file_put_contents('a.txt',print_r(apcu_fetch($this->id),true)."\r\n",FILE_APPEND);
+        return isset($this->data[$key]);//成功true  失败false
 	}
 	public function all(){
 		return $this->data;//没有值为空数组   array()

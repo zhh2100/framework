@@ -36,9 +36,10 @@ class Redis{
 		//如果不存在  创建cookie与session
 		if(empty($id) || !$handler->exists($id)) {
 
-			do{
-				$id=md5(microtime(true) . session_create_id());
-				$id=$config['prefix'].$id;
+            $count=0;
+            do{
+                if(empty($id) || $count>0)$id=$config['prefix'].md5(number_format(microtime(true),10));
+                $count++;
 			}while($handler->exists($id));
 
 			//$handler->hmset($id,array('a'=>'1'));

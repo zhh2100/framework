@@ -1,11 +1,11 @@
 <?php
-namespace pidan\db;
+namespace pidan\dbs;
 use Exception;
 use PDO;
 use PDOException;
-use pidan\Db;
+#use pidan\dbs\interface\Dbs;
 
-class Mysql implements Db
+class Mysql //implements Dbs
 {
 	protected $pdo;
 	/**
@@ -26,7 +26,7 @@ class Mysql implements Db
 
 	protected $settings;
 
-	public function __construct($host, $user, $password, $db_name, $prefix = '', $port='3306', $charset = 'utf8')
+	public function __construct($host, $user, $password, $db_name, $prefix = '', $charset = 'utf8', $port='3306')
 	{
 		$this->settings = array(
 			'host'     => $host,
@@ -42,8 +42,8 @@ class Mysql implements Db
 
 	public static function __make()
 	{
-		$config=app('config')->get('datebase');
-		return new static($config['db_host'], $config['db_user'], $config['db_pwd'], $config['db_name'], $config['db_prefix']);
+		$config=app('config')->get('database.connections.mysql');
+		return new static($config['hostname'], $config['username'], $config['password'], $config['database'], $config['prefix'],$config['charset']);
 	}
 	/**
 	 * 创建 PDO 实例

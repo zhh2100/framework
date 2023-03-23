@@ -3,7 +3,6 @@ declare (strict_types = 1);
 
 namespace pidan;
 
-use pidan\db\Mysql;
 use pidan\helper\Str;
 // use pidan\cache\Redis;
 /**
@@ -12,6 +11,11 @@ use pidan\helper\Str;
 class App extends Container
 {
 	const VERSION = '1.0.1';
+    /**
+     * 应用模型
+     * @var bool
+     */
+    protected $mode = '';//空为正常模型  thin瘦模型做接口  cli   swoole
 
 	/**
 	 * 应用调试模式
@@ -46,6 +50,13 @@ class App extends Container
 	 * @var string
 	 */
 	protected $runtimePath = '';
+    /**
+     * 应用初始化器
+     * @var array
+     */
+    protected $initializers = [
+        'pidan\initializer\RegisterService'
+    ];
 	/**
 	 * 注册的系统服务
 	 * @var array
@@ -68,6 +79,7 @@ class App extends Container
         'console'                 => Console::class,
         'cookie'                  => Cookie::class,
         'db'                      => Db::class,
+        'dbs'                     => Dbs::class,
         'event'                   => Event::class,
         'http'                    => Http::class,
         'lang'                    => Lang::class,
@@ -92,12 +104,18 @@ class App extends Container
 	{
 		$this->G('AppStart');
 		$this->pidanPath   = dirname(__DIR__)  . '/';// /jetee/framework/src
-		$this->rootPath    = $rootPath ? $rootPath : dirname(dirname(dirname(dirname($this->pidanPath)))). '/';
+		$this->rootPath    = $rootPath ? $rootPath : dirname($this->pidanPath, 4). '/';
 		$this->appPath     = $this->rootPath . 'app' . '/';
 		$this->runtimePath = $this->rootPath . 'runtime' . '/';
+
+        if (is_file($this->appPath . 'provider.php')) {
+            $this->bind(include $this->appPath . 'provider.php');
+        }
+
 		static::setInstance($this);
+
 		$this->instance('pidan\App', $this);
-		$this->instance('pidan\Container', $this);      
+		$this->instance('pidan\Container', $this); 
 	}
 	
 	/**
@@ -121,6 +139,27 @@ class App extends Container
 	{
 		return $this->appDebug;
 	}
+    /**
+     * 设置应用模型
+     * @access public
+     * @param string $mode 应用模型
+     * @return $this
+     */
+    public function setMode(string $mode)
+    {
+        $this->mode = $mode;
+        return $this;
+    }
+
+    /**
+     * 获取应用模型
+     * @access public
+     * @return string
+     */
+    public function getMode(): string
+    {
+        return $this->mode;
+    }
 	/**
 	 * 设置应用命名空间
 	 * @access public
@@ -217,8 +256,18 @@ class App extends Container
 	{
 		return php_sapi_name() === 'cli' || php_sapi_name() === 'phpdbg';
 	}
+    /**
+     * 设置初始化服务
+     * @param array $initializers
+     */
+    public function setInitializers(array $initializers)
+    {
+        $this->initializers = $initializers;
+        return $this;
+    }
+
 	/**
-	 * 引导应用
+	 * 引导应用 
 	 * @access public
 	 * @return void
 	 */
@@ -268,12 +317,10 @@ class App extends Container
 
 		date_default_timezone_set($this->config->get('app.default_timezone'));
 
-		$services=[];
-		if (is_file($this->rootPath . 'vendor/services.php'))
-			$services = include $this->rootPath . 'vendor/services.php';
-		foreach ($services as $service) {
-			$this->register($service);
-		}
+        // 初始化
+        foreach ($this->initializers as $initializer) {
+            $this->make($initializer)->init($this);
+        }
 
 		$this->bootService();
 		$this->G('initialized');
@@ -287,13 +334,13 @@ class App extends Container
      */
     public function load(): void
     {
-		$this->config->load($this->appPath.'config.php');
-
 		include_once $this->pidanPath . 'helper.php';
 
 		if (is_file($this->appPath . 'common.php')) {//加载应用函数
 			include_once $this->appPath. 'common.php';
 		}
+
+		$this->config->load($this->appPath.'config.php');
 
 		if (is_file($this->appPath . 'event.php')) {
 			$this->loadEvent(include $this->appPath . 'event.php');
@@ -350,7 +397,6 @@ class App extends Container
 	public function debugModeInit(): void
 	{
 		$this->appDebug = defined('DEBUG') && DEBUG ? true : false;
-
 		ini_set('display_errors', $this->appDebug ? 'On' : 'Off');
 
 		if (!$this->runningInConsole()) {

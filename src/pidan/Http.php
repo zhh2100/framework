@@ -143,13 +143,15 @@ class Http
 		//自动创建request对象
 		$request = $this->app->make('request');
 		// 加载全局中间件
+
+
+		// 监听HttpRun
+		$this->app->event->trigger('HttpRun');
+
 		if (is_file($this->app->getBasePath() . 'middleware.php')) {
 			$this->app->middleware->import(include $this->app->getBasePath() . 'middleware.php');
 		}
 
-		// 监听HttpRun
-		$this->app->event->trigger('HttpRun');
-		//https://www.ma863.com/blog/show/id/220.html  分解
 		return $this->app->middleware->pipeline()
 			->send($request)
 			/*->then(function ($request) {
@@ -163,7 +165,6 @@ class Http
 				return $response;
 			});*/
 			->then(function ($request) {
-
 				$this->app->G('controllerBigin');
 				$withRoute = config('app.with_route', true) ? function () {
 					//加载路由

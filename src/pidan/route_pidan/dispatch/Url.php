@@ -12,35 +12,37 @@ use pidan\route\Rule;
  */
 class Url extends Controller
 {
-
     public function __construct(Request $request, Rule $rule, $dispatch)
     {
         $this->request = $request;
         $this->rule    = $rule;
-        // 解析默认的URL规则  'index/index/index' =>     ''=>[null,null]
+
+        // 解析控制器操作,其它参数存入$this->param
         $dispatch = $this->parseUrl($dispatch);
 
         parent::__construct($request, $rule, $dispatch, $this->param);
     }
-
+    
     /**
-     * 解析URL地址
+     * 解析控制器操作,其它参数存入$this->param 
      * @access protected
      * @param  string $url URL
-     * @return array
+     * @return array  [$controller, $action]
      */
     protected function parseUrl(string $url): array
     {
-        $depr = $this->rule->config('pathinfo_depr');
-        $bind = $this->rule->getRouter()->getDomainBind();
+        $depr = $this->rule->config('pathinfo_depr');//  路径分隔符  一般是 /
+        if($with_route=config('app.with_route')){
+			$bind = $this->rule->getRouter()->getDomainBind();// 取域名绑定
 
-        if ($bind && preg_match('/^[a-z]/is', $bind)) {
-            $bind = str_replace('/', $depr, $bind);
-            // 如果有域名绑定
-            $url = $bind . ('.' != substr($bind, -1) ? $depr : '') . ltrim($url, $depr);
+			if ($bind && preg_match('/^[a-z]/is', $bind)) {
+				$bind = str_replace('/', $depr, $bind);
+				// 如果有域名绑定
+				$url = $bind . ('.' != substr($bind, -1) ? $depr : '') . ltrim($url, $depr);
+			}
         }
 
-        $path = $this->rule->parseUrlPath($url);
+        $path = $this->rule->parseUrlPath($url);//返回[控制器,操作,其他参数]
         if (empty($path)) {
             return [null, null];
         }
@@ -75,34 +77,11 @@ class Url extends Controller
         // 封装路由
         $route = [$controller, $action];
 
-        if ($this->hasDefinedRoute($route)) {
+        if ($with_route && $this->hasDefinedRoute($route)) {
             throw new \RuntimeException('invalid request:' . str_replace('|', $depr, $url));
         }
 
         return $route;
     }
-
-    /**
-     * 检查URL是否已经定义过路由
-     * @access protected
-     * @param  array $route 路由信息
-     * @return bool
-     */
-    protected function hasDefinedRoute(array $route): bool
-    {
-        [$controller, $action] = $route;
-
-        // 检查地址是否被定义过路由
-        $name = strtolower(Str::studly($controller) . '/' . $action);
-
-        $host   = $this->request->host(true);
-        $method = $this->request->method();
-
-        if ($this->rule->getRouter()->getName($name, $host, $method)) {
-            return true;
-        }
-
-        return false;
-    }
-
+    
 }

@@ -9,8 +9,6 @@ namespace pidan;
  */
 class Config
 {
-	protected $app;
-
 	/**
 	 * 配置参数
 	 * @var array
@@ -39,9 +37,8 @@ class Config
 	 * 构造方法
 	 * @access public
 	 */
-	public function __construct(string $path = null, string $ext = '.php',App $app)
+	public function __construct(string $path = null, string $ext = '.php')
 	{
-		$this->app  = $app;
 		$this->path = $path ?: '';
 		$this->ext  = $ext;
 		$this->setApcuPrefix('conf_');
@@ -49,7 +46,7 @@ class Config
 
 	public static function __make(App $app)
 	{
-		return new static($app->getBasePath(),'.php',$app);
+		return new static($app->getBasePath(),'.php');
 	}
 	 /**
 	 * APCu prefix 决定是否使用apcu缓冲

@@ -330,46 +330,49 @@ class Container implements ArrayAccess,  Countable
 			}
 		}
 	}
-	/**
-	 * 绑定参数
-	 * @access protected
-	 * @param ReflectionFunctionAbstract $reflect 反射类
-	 * @param array                      $vars    参数
-	 * @return array
-	 */
-	protected function bindParams(ReflectionFunctionAbstract $reflect, array $vars = []): array
-	{
-		if ($reflect->getNumberOfParameters() == 0) {
-			return [];
-		}
+    /**
+     * 绑定参数
+     * @access protected
+     * @param ReflectionFunctionAbstract $reflect 反射类
+     * @param array                      $vars    参数
+     * @return array
+     */
+    protected function bindParams(ReflectionFunctionAbstract $reflect, array $vars = []): array
+    {
+        if ($reflect->getNumberOfParameters() == 0) {
+            return [];
+        }
 
-		// 判断数组类型 数字数组时按顺序绑定参数
-		reset($vars);
-		$type   = key($vars) === 0 ? 1 : 0;
-		$params = $reflect->getParameters();
-		$args   = [];
+        // 判断数组类型 数字数组时按顺序绑定参数
+        reset($vars);
+        $type   = key($vars) === 0 ? 1 : 0;
+        $params = $reflect->getParameters();
+        $args   = [];
 
-		foreach ($params as $param) {
-			$name      = $param->getName();
-			$lowerName = \pidan\helper\Str::snake($name);
-			$class     = $param->getClass();
-			if ($class) {
-				$args[] = $this->getObjectParam($class->getName(), $vars);
-			} elseif (1 == $type && !empty($vars)) {
-				$args[] = array_shift($vars);
-			} elseif (0 == $type && isset($vars[$name])) {
-				$args[] = $vars[$name];
-			} elseif (0 == $type && isset($vars[$lowerName])) {
-				$args[] = $vars[$lowerName];
-			} elseif ($param->isDefaultValueAvailable()) {
-				$args[] = $param->getDefaultValue();
-			} else {
-				throw new InvalidArgumentException('method param miss:' . $name);
-			}
-		}
+        foreach ($params as $param) {
+            $name           = $param->getName();
+            $lowerName      = \pidan\helper\Str::snake($name);
+            $reflectionType = $param->getType();
 
-		return $args;
-	}
+            if ($param->isVariadic()) {
+                return array_merge($args, array_values($vars));
+            } elseif ($reflectionType && $reflectionType instanceof \ReflectionNamedType && $reflectionType->isBuiltin() === false) {
+                $args[] = $this->getObjectParam($reflectionType->getName(), $vars);
+            } elseif (1 == $type && !empty($vars)) {
+                $args[] = array_shift($vars);
+            } elseif (0 == $type && array_key_exists($name, $vars)) {
+                $args[] = $vars[$name];
+            } elseif (0 == $type && array_key_exists($lowerName, $vars)) {
+                $args[] = $vars[$lowerName];
+            } elseif ($param->isDefaultValueAvailable()) {
+                $args[] = $param->getDefaultValue();
+            } else {
+                throw new InvalidArgumentException('method param miss:' . $name);
+            }
+        }
+
+        return $args;
+    }
 	/**
 	 * 获取对象
 	 * @access protected

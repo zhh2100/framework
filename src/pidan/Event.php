@@ -201,9 +201,8 @@ class Event
 		if(isset($this->listener[$event]) || strpos($event, '.'))
 		{
 			$result    = [];
-			$listeners = $this->listener[$event];
-
-			if (strpos($event, '.')) {
+            $listeners = $this->listener[$event] ?? [];
+            if (strpos($event, '.')) {
 				[$prefix, $event] = explode('.', $event, 2);
 				if (isset($this->listener[$prefix . '.*'])) {
 					$listeners = array_merge($listeners, $this->listener[$prefix . '.*']);
