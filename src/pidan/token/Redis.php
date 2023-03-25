@@ -1,5 +1,6 @@
 <?php
-namespace pidan\session;
+namespace pidan\token;
+
 /**
  使用redis作session
  $sess=new session();
@@ -18,12 +19,12 @@ class Redis{
 		$this->expire=$expire;
 		$this->handler=redis();
 	}
+
 	public static function __make()
-	{	
+	{
 		//取id
 		$handler=redis();
-		$cookie=app('cookie');
-		$config=app('config')->get('session');
+		$config=app('config')->get('access_token');
 		if(PHP_SAPI == 'cli'){
 			$id=$cookie->get($config['name']);
 		}else{
@@ -32,25 +33,17 @@ class Redis{
 
 		//如果不存在  创建cookie与session
 		if(empty($id) || !$handler->exists($id)) {
-
-            $count=0;
-            do{
-                if(empty($id) || $count>0)$id=$config['prefix'].md5(number_format(microtime(true),10));
-                $count++;
+			do{
+				$id=$config['prefix'].md5(number_format(microtime(true),10));
 			}while($handler->exists($id));
 
 			$handler->hmset($id,array('a'=>'1'));
 			$handler->expire($id,$config['expire']);
-
-			if(PHP_SAPI == 'cli'){
-				$cookie->set($config['name'],$id,$config['expire']);
-			}else{
-				$cookie->set($config['name'],$id,$config['expire']);
-			}
 		}
-
-		return new static($id,$handler->ttl($id));
+		$ttl=$handler->ttl($id);
+		return new static($id,$ttl>0 ? $ttl : 0 );
 	}
+
 	public function getId(){
 		return $this->id;
 	}
@@ -67,7 +60,7 @@ class Redis{
 	* @param mixed  $value
 	* @return mixed 0修改成功   1新增成功  false失败
 	*/
- 	public function set($key, $value) {
+	public function set($key, $value) {
 		return $this->handler->hset($this->id,$key,$value);//0修改成功   1新增成功  false失败
 	}
 	public function delete($key){
@@ -81,7 +74,7 @@ class Redis{
 	public function get($key) {
 		return $this->handler->hget($this->id,$key);//没有值为false
 	}
- 	public function has($key) {
+	public function has($key) {
 		return $this->handler->hexists($this->id,$key);//成功true  失败false
 	}
 	public function all(){

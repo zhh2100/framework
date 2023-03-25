@@ -32,7 +32,7 @@ class Apcu{
 		if(empty($id) || !apcu_exists($id)) {
             $count=0;
 			do{
-                if(empty($id) || $count>0)$id=$config['prefix'].md5(number_format(microtime(true),10));
+                if(empty($id) || $count>0)$id=$config['prefix'].md5(number_format(microtime(true),10));//如果传来了就用
                 $count++;
 			}while(apcu_exists($id));
 
@@ -44,8 +44,14 @@ class Apcu{
 				$cookie->set($config['name'],$id,$config['expire']);
 			}
 		}
-
-		return new static($id,$config['expire']);
+		
+		return new static($id,acpu_ttl($id));
+	}
+	public function getId(){
+		return $this->id;
+	}
+	public function getxpire(){
+		return $this->expire;
 	}
 	/**
 	* 设置或删除key
@@ -80,7 +86,6 @@ class Apcu{
 		return $default;
 	}
  	public function has($key) {
-        #file_put_contents('a.txt',print_r(apcu_fetch($this->id),true)."\r\n",FILE_APPEND);
         return isset($this->data[$key]);//成功true  失败false
 	}
 	public function all(){

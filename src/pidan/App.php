@@ -73,27 +73,28 @@ class App extends Container
 	 * @var array
 	 */
 	protected $bind = [
-        'app'                     => App::class,
-        'cache'                   => Cache::class,
-        'config'                  => Config::class,
-        'console'                 => Console::class,
-        'cookie'                  => Cookie::class,
-        'db'                      => Db::class,
-        'dbs'                     => Dbs::class,
-        'event'                   => Event::class,
-        'http'                    => Http::class,
-        'lang'                    => Lang::class,
-        'log'                     => Log::class,
-        'middleware'              => Middleware::class,
-        'request'                 => Request::class,
-        'response'                => Response::class,
+		'app'                     => App::class,
+		'cache'                   => Cache::class,
+		'config'                  => Config::class,
+		'console'                 => Console::class,
+		'cookie'                  => Cookie::class,
+		'db'                      => Db::class,
+		'dbs'                     => Dbs::class,
+		'event'                   => Event::class,
+		'http'                    => Http::class,
+		'lang'                    => Lang::class,
+		'log'                     => Log::class,
+		'middleware'              => Middleware::class,
+		'request'                 => Request::class,
+		'response'                => Response::class,
 		'route'                   => Route::class,
 		'session'                 => Session::class,
-        'pidan\DbManager'         => Db::class,
-        'pidan\LogManager'        => Log::class,
-        'pidan\CacheManager'      => Cache::class,
-        // 接口依赖注入
-        'Psr\Log\LoggerInterface' => Log::class,
+		'token'										=> Token::class,
+		'pidan\DbManager'         => Db::class,
+		'pidan\LogManager'        => Log::class,
+		'pidan\CacheManager'      => Cache::class,
+		// 接口依赖注入
+		'Psr\Log\LoggerInterface' => Log::class,
     ];
 	/**
 	 * 架构方法

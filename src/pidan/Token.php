@@ -5,18 +5,18 @@ namespace pidan;
 use pidan\helper\Str;
 
 /**
- * Session管理类
+ * TokenSession管理类
  * @package pidan
  * @mixin Store
  */
-class Session
+class Token
 {
 	private $handle=null;
 	public function __construct() {
 		// 服务注册
-		$type=($app=app())->config->get('session.type','Apcu');
-		$app->bind('session_handle','pidan\\session\\' . Str::studly($type));
-		$this->handle=$app->make('session_handle');
+		$type=($app=app())->config->get('token.type','Apcu');
+		$app->bind('token_handle','pidan\\session\\' . Str::studly($type));
+		$this->handle=$app->make('token_handle');
 	}
 
     /**

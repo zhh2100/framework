@@ -44,7 +44,7 @@ class LoadLangPack
         $this->lang->switchLangSet($langset);
 
         if ($this->config['use_cookie'] && $cookie->get($this->config['cookie_var']) != $langset){          
-            $cookie->set($this->config['cookie_var'], $langSet);
+            $cookie->set($this->config['cookie_var'], $langset);
         } 
 
         return $next($request);

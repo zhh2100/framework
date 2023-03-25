@@ -174,7 +174,7 @@ class Lang
         foreach ((array) $file as $name) {
             if (is_file($name)) {
                 $result = $this->parse($name);
-                $lang   = array_change_key_case($result) + $lang;
+                $lang   = $result + $lang;
             }
         }
 
