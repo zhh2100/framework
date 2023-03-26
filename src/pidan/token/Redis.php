@@ -26,9 +26,9 @@ class Redis{
 		$handler=redis();
 		$config=app('config')->get('access_token');
 		if(PHP_SAPI == 'cli'){
-			$id=$cookie->get($config['name']);
+			$id=app('request')->request($config['name'],'','trim,md5_clear');
 		}else{
-			$id=$cookie->get($config['name']);
+			$id=app('request')->request($config['name'],'','trim,md5_clear');
 		}
 
 		//如果不存在  创建cookie与session
@@ -36,7 +36,6 @@ class Redis{
 			do{
 				$id=$config['prefix'].md5(number_format(microtime(true),10));
 			}while($handler->exists($id));
-
 			$handler->hmset($id,array('a'=>'1'));
 			$handler->expire($id,$config['expire']);
 		}

@@ -300,7 +300,7 @@ function route()
  * @param mixed  $value session值
  * @return mixed
  */
-function session($name = '', $value = '',$driver='session')
+function session($name = '', $value = '',string $driver='session')
 {
 	$session=app($driver);
 	if (is_null($name)) {
@@ -322,13 +322,7 @@ function session($name = '', $value = '',$driver='session')
 //与表单令牌不一样，这个用传参来替代cookie传session_id
 function token_session($name = '', $value = '')
 {
-	if($name=='getAccessToken'){
-		return app('token')->getId();
-	}elseif($name=='getAccessTokenExpire'){
-		return app('token')->getExpire();
-	}else{
-		return session($name, $value,'token');
-	}	
+	return session($name, $value,'token');
 }
 
 /**

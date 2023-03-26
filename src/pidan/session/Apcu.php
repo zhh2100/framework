@@ -32,8 +32,8 @@ class Apcu{
 		if(empty($id) || !apcu_exists($id)) {
             $count=0;
 			do{
-                if(empty($id) || $count>0)$id=$config['prefix'].md5(number_format(microtime(true),10));//如果传来了就用
-                $count++;
+				if(empty($id) || $count>0)$id=$config['prefix'].md5(number_format(microtime(true),10));//如果传来了就用
+				$count++;
 			}while(apcu_exists($id));
 
 			apcu_store($id, [],$config['expire']);

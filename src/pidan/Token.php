@@ -14,8 +14,8 @@ class Token
 	private $handle=null;
 	public function __construct() {
 		// 服务注册
-		$type=($app=app())->config->get('token.type','Apcu');
-		$app->bind('token_handle','pidan\\session\\' . Str::studly($type));
+		$type=($app=app())->config->get('access_token.type','apcu');
+		$app->bind('token_handle','pidan\\token\\' . Str::studly($type));
 		$this->handle=$app->make('token_handle');
 	}
 
