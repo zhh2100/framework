@@ -1,4 +1,6 @@
 <?php
+declare (strict_types = 1);
+
 namespace pidan;
 
 /**
@@ -31,6 +33,11 @@ abstract class Response
 	 */
 	protected $code = 200;
 
+	/**
+	 * 是否允许请求缓存
+	 * @var bool
+	 */
+	protected $allowCache = true;
 
 	/**
 	 * 输出参数
@@ -49,11 +56,17 @@ abstract class Response
 	 * @var string
 	 */
 	protected $content = null;
-    /**
-     * Cookie对象
-     * @var Cookie
-     */
-    protected $cookie;
+	/**
+	 * Cookie对象
+	 * @var Cookie
+	 */
+	protected $cookie;
+
+	/**
+	 * Session对象
+	 * @var Session
+	 */
+	protected $session;
 
 	/**
 	 * 初始化
@@ -83,6 +96,20 @@ abstract class Response
 
 		return Container::getInstance()->invokeClass($class, [$data, $code]);
 	}
+
+
+	/**
+	 * 设置Session对象
+	 * @access public
+	 * @param  Session $session Session对象
+	 * @return $this
+	 */
+	public function setSession(Session $session)
+	{
+		$this->session = $session;
+		return $this;
+	}
+
 	/**
 	 * 发送数据到客户端
 	 * @access public
@@ -94,22 +121,26 @@ abstract class Response
 		// 处理输出数据
 		$data = $this->getContent();
 
-		if (!headers_sent() && !empty($this->header)) {
-			// 发送状态码
-			http_response_code($this->code);
-			// 发送头部信息
-			foreach ($this->header as $name => $val) {
-				header($name . (!is_null($val) ? ':' . $val : ''));
+		if (!headers_sent()) {
+			if (!empty($this->header)) {
+				// 发送状态码
+				http_response_code($this->code);
+				// 发送头部信息
+				foreach ($this->header as $name => $val) {
+					header($name . (!is_null($val) ? ':' . $val : ''));
+				}
+			}
+
+			if ($this->cookie) {
+				$this->cookie->save();
 			}
 		}
-		if ($this->cookie) {
-			$this->cookie->save();
-		}
+
 		$this->sendData($data);
 
 		if (function_exists('fastcgi_finish_request') && !app()->isDebug()) {
 			// 提高页面响应
-		   fastcgi_finish_request();
+			 fastcgi_finish_request();
 		}
 	}
 
@@ -157,6 +188,44 @@ abstract class Response
 	public function data($data)
 	{
 		$this->data = $data;
+
+		return $this;
+	}
+
+	/**
+	 * 是否允许请求缓存
+	 * @access public
+	 * @param  bool $cache 允许请求缓存
+	 * @return $this
+	 */
+	public function allowCache(bool $cache)
+	{
+		$this->allowCache = $cache;
+
+		return $this;
+	}
+
+	/**
+	 * 是否允许请求缓存
+	 * @access public
+	 * @return bool
+	 */
+	public function isAllowCache()
+	{
+		return $this->allowCache;
+	}
+
+	/**
+	 * 设置Cookie
+	 * @access public
+	 * @param  string $name  cookie名称
+	 * @param  string $value cookie值
+	 * @param  mixed  $option 可选参数
+	 * @return $this
+	 */
+	public function cookie(string $name, string $value, $option = null)
+	{
+		$this->cookie->set($name, $value, $option);
 
 		return $this;
 	}

@@ -39,6 +39,7 @@ class Http
 	{
 		$this->app = $app;
 
+		$this->routePath = $this->app->getRootPath() . 'route' . DIRECTORY_SEPARATOR;
 	}
 
 	/**
@@ -168,9 +169,11 @@ class Http
 				$this->app->G('controllerBigin');
 				$withRoute = config('app.with_route', true) ? function () {
 					//加载路由
-					$files = glob($this->routePath . '*.php');
-					foreach ($files as $file) {
-						include $file;
+        				if (is_dir($$this->routePath)) {
+						$files = glob($this->routePath . '*.php');
+						foreach ($files as $file) {
+							include $file;
+						}
 					}
 					event(RouteLoaded::class);
 				} : null;

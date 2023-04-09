@@ -83,10 +83,8 @@ class Console
     public function __construct(App $app)
     {
         $this->app = $app;
-        
-        $this->app->initialize();
 
-        $this->makeRequest();
+        $this->initialize();
 
         $this->definition = $this->getDefaultInputDefinition();
 
@@ -97,13 +95,24 @@ class Console
     }
 
     /**
+     * 初始化
+     */
+    protected function initialize()
+    {
+        if (!$this->app->initialized()) {
+            $this->app->initialize();
+        }
+        $this->makeRequest();
+    }
+
+    /**
      * 构造request
      */
     protected function makeRequest()
     {
-        $uri = $this->app->config->get('app.url', 'http://localhost');
+        $url = $this->app->config->get('app.url', 'http://localhost');
 
-        $components = parse_url($uri);
+        $components = parse_url($url);
 
         $server = $_SERVER;
 
@@ -111,6 +120,7 @@ class Console
             $server = array_merge($server, [
                 'SCRIPT_FILENAME' => $components['path'],
                 'SCRIPT_NAME'     => $components['path'],
+                'REQUEST_URI'     => $components['path'],
             ]);
         }
 
@@ -133,8 +143,6 @@ class Console
             $server['SERVER_PORT'] = $components['port'];
             $server['HTTP_HOST'] .= ':' . $components['port'];
         }
-
-        $server['REQUEST_URI'] = $uri;
 
         /** @var Request $request */
         $request = $this->app->make('request');

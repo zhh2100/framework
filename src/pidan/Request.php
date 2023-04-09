@@ -12,36 +12,36 @@ use pidan\route\Rule;
  */
 class Request implements ArrayAccess
 {
-    /**
-     * 兼容PATH_INFO获取
-     * @var array
-     */
-    protected $pathinfoFetch = ['ORIG_PATH_INFO', 'REDIRECT_PATH_INFO', 'REDIRECT_URL'];
+	/**
+	 * 兼容PATH_INFO获取
+	 * @var array
+	 */
+	protected $pathinfoFetch = ['ORIG_PATH_INFO', 'REDIRECT_PATH_INFO', 'REDIRECT_URL'];
 
-    /**
-     * PATHINFO变量名 用于兼容模式  nginx|apache重写  /index.php?s=/$1
-     * @var string
-     */
-    protected $varPathinfo = 's';
+	/**
+	 * PATHINFO变量名 用于兼容模式  nginx|apache重写  /index.php?s=/$1
+	 * @var string
+	 */
+	protected $varPathinfo = 's';
 
-    /**
-     * 请求类型  post过来时可以指定访问类型  $_POST[_method]=['get', 'post', 'put', 'patch', 'delete']
-     * @var string
-     */
-    protected $varMethod = '_method';
+	/**
+	 * 请求类型  post过来时可以指定访问类型  $_POST[_method]=['get', 'post', 'put', 'patch', 'delete']
+	 * @var string
+	 */
+	protected $varMethod = '_method';
 
-    /**
-     * 表单ajax伪装变量
-     * @var string
-     */
-    protected $varAjax = '_ajax';
+	/**
+	 * 表单ajax伪装变量
+	 * @var string
+	 */
+	protected $varAjax = '_ajax';
 
-    /**
-     * 表单pjax伪装变量
-     * @var string
-     */
-    protected $varPjax = '_pjax';
-    /**
+	/**
+	 * 表单pjax伪装变量
+	 * @var string
+	 */
+	protected $varPjax = '_pjax';
+	/**
 	 * 域名根
 	 * @var string
 	 */
@@ -152,31 +152,39 @@ class Request implements ArrayAccess
 	 */
 	protected $request = [];
 	/**
-     * 当前路由对象
-     * @var Rule
-     */
-    protected $rule;
+	 * 当前路由对象
+	 * @var Rule
+	 */
+	protected $rule;
 
-    /**
-     * 当前ROUTE参数
-     * @var array
-     */
-    protected $route = [];
-    /**
-     * 中间件传递的参数
-     * @var array
-     */
-    protected $middleware = [];
+	/**
+	 * 当前ROUTE参数
+	 * @var array
+	 */
+	protected $route = [];
+	/**
+	 * 中间件传递的参数
+	 * @var array
+	 */
+	protected $middleware = [];
 	/**
 	 * 当前PUT参数
 	 * @var array
 	 */
 	protected $put;
-	 /**
-     * COOKIE数据
-     * @var array
-     */
-    protected $cookie = [];
+
+
+	/**
+	* SESSION对象
+	* @var Session
+	*/
+	protected $session;
+
+	/**
+	* COOKIE数据
+	* @var array
+	*/
+   	protected $cookie = [];
 	/**
 	 * 当前SERVER参数
 	 * @var array
@@ -193,55 +201,50 @@ class Request implements ArrayAccess
 	 */
 	protected $header = [];
 	/**
-     * 资源类型定义
-     * @var array
-     */
-    protected $mimeType = [
-        'html'  => 'text/html,application/xhtml+xml,*/*',
-        'xml'   => 'application/xml,text/xml,application/x-xml',
-        'json'  => 'application/json,text/x-json,application/jsonrequest,text/json',
-        'js'    => 'text/javascript,application/javascript,application/x-javascript',
-        'css'   => 'text/css',
-        'rss'   => 'application/rss+xml',
-        'yaml'  => 'application/x-yaml,text/yaml',
-        'atom'  => 'application/atom+xml',
-        'pdf'   => 'application/pdf',
-        'text'  => 'text/plain',
-        'image' => 'image/png,image/jpg,image/jpeg,image/pjpeg,image/gif,image/webp,image/*',
-        'csv'   => 'text/csv',
-    ];
+	 * 资源类型定义
+	 * @var array
+	 */
+	protected $mimeType = [
+		'xml'   => 'application/xml,text/xml,application/x-xml',
+		'json'  => 'application/json,text/x-json,application/jsonrequest,text/json',
+		'js'    => 'text/javascript,application/javascript,application/x-javascript',
+		'css'   => 'text/css',
+		'rss'   => 'application/rss+xml',
+		'yaml'  => 'application/x-yaml,text/yaml',
+		'atom'  => 'application/atom+xml',
+		'pdf'   => 'application/pdf',
+		'text'  => 'text/plain',
+		'image' => 'image/png,image/jpg,image/jpeg,image/pjpeg,image/gif,image/webp,image/*',
+		'csv'   => 'text/csv',
+		'html'  => 'text/html,application/xhtml+xml,*/*',
+	];
 	/**
 	 * 当前请求内容
 	 * @var string
 	 */
 	protected $content;
-    /**
-     * 全局过滤规则
-     * @var array
-     */
-    protected $filter;
+	/**
+	 * 全局过滤规则
+	 * @var array
+	 */
+	protected $filter;
 	/**
 	 * php://input内容
 	 * @var string
 	 */
 	// php://input
 	protected $input;
-    /**
-     * 请求安全Key
-     * @var string
-     */
-    protected $secureKey;
-
-    /**
-     * 是否已经合并Param
-     * @var bool
-     */
-    protected $mergeParam = false;
 	/**
-	 * 是否允许请求缓存  未过期的304与redis缓冲
+	 * 请求安全Key
+	 * @var string
+	 */
+	protected $secureKey;
+
+	/**
+	 * 是否已经合并Param
 	 * @var bool
 	 */
-	protected $allowCache = true;
+	protected $mergeParam = false;
 	/**
 	 * 架构函数
 	 * @access public
@@ -252,7 +255,7 @@ class Request implements ArrayAccess
 		$this->input = file_get_contents('php://input');
 	}
 
-	public static function __make(App $app)
+	public static function __make()
 	{
 		$request = new static();
 		if (function_exists('apache_request_headers') && $result = apache_request_headers()) {
@@ -288,56 +291,7 @@ class Request implements ArrayAccess
 
 		return $request;
 	}
-	//取json与urlencoded
-	protected function getInputData($content): array
-	{
-		$contentType = $this->contentType();
-		if ('application/x-www-form-urlencoded' == $contentType) {
-			parse_str($content, $data);
-			return $data;
-		} elseif (false !== strpos($contentType, 'json')) {
-			return (array) json_decode($content, true);
-		}
 
-		return [];
-	}
-	/**
-	 * 当前请求 HTTP_CONTENT_TYPE
-	 * @access public
-	 * @return string
-	 */
-	public function contentType(): string
-	{
-		$contentType = $this->header('Content-Type');
-
-		if ($contentType) {
-			if (strpos($contentType, ';')) {
-				[$type] = explode(';', $contentType);
-			} else {
-				$type = $contentType;
-			}
-			return trim($type);
-		}
-
-		return '';
-	}
-	/**
-	 * 获取当前的Header
-	 * @access public
-	 * @param  string $name header名称
-	 * @param  string $default 默认值
-	 * @return string|array
-	 */
-	public function header(string $name = '', string $default = null)
-	{
-		if ('' === $name) {
-			return $this->header;
-		}
-
-		$name = str_replace('_', '-', strtolower($name));
-
-		return $this->header[$name] ?? $default;
-	}
 	/**
 	 * 设置当前包含协议的域名
 	 * @access public
@@ -602,6 +556,7 @@ class Request implements ArrayAccess
 				// 判断URL里面是否有兼容模式参数
 				$pathinfo = $_GET[$this->varPathinfo];
 				unset($_GET[$this->varPathinfo]);
+				unset($this->get[$this->varPathinfo]);
 			} elseif ($this->server('PATH_INFO')) {
 				$pathinfo = $this->server('PATH_INFO');
 			} elseif (false !== strpos(PHP_SAPI, 'cli')) {
@@ -999,7 +954,19 @@ class Request implements ArrayAccess
 		return $this->input($this->put, $name, $default, $filter);
 	}
 
+	//取json与urlencoded
+	protected function getInputData($content): array
+	{
+		$contentType = $this->contentType();
+		if ('application/x-www-form-urlencoded' == $contentType) {
+			parse_str($content, $data);
+			return $data;
+		} elseif (false !== strpos($contentType, 'json')) {
+			return (array) json_decode($content, true);
+		}
 
+		return [];
+	}
 
 	/**
 	 * 设置获取DELETE参数
@@ -1193,12 +1160,27 @@ class Request implements ArrayAccess
 			7 => 'file write error',
 		];
 
-		$msg = $fileUploadErrors[$error];
+		$msg = lang($fileUploadErrors[$error]);
 		throw new Exception($msg, $error);
 	}
 
+	/**
+	 * 获取当前的Header
+	 * @access public
+	 * @param  string $name header名称
+	 * @param  string $default 默认值
+	 * @return string|array|null
+	 */
+	public function header(string $name = '', string $default = null)
+	{
+		if ('' === $name) {
+			return $this->header;
+		}
 
+		$name = str_replace('_', '-', strtolower($name));
 
+		return $this->header[$name] ?? $default;
+	}
 	/**
 	 * 获取变量 支持过滤和默认值
 	 * @access public
@@ -1379,6 +1361,9 @@ class Request implements ArrayAccess
 		foreach ($filters as $filter) {
 			if (is_callable($filter)) {
 				// 调用函数或者方法过滤
+				if (is_null($value)) {
+					continue;
+				}
 				$value = call_user_func($filter, $value);
 			} elseif (is_scalar($value)) {
 				if (is_string($filter) && false !== strpos($filter, '/')) {//是正则
@@ -1399,7 +1384,6 @@ class Request implements ArrayAccess
 				}
 			}
 		}
-
 		return $value;
 	}
 
@@ -1438,7 +1422,7 @@ class Request implements ArrayAccess
 	/**
 	 * 获取指定的参数
 	 * @access public
-     * @param  array        $name 变量名     ['需要值的键'=>默认值,]
+	 * @param  array        $name 变量名     ['需要值的键'=>默认值,]
 	 * @param  mixed        $data 数据或者变量类型
 	 * @param  string|array $filter 过滤方法
 	 * @return array
@@ -1453,7 +1437,7 @@ class Request implements ArrayAccess
 			if (is_int($key)) {
 				$default = null;
 				$key     = $val;
-				if (!isset($data[$key])) {
+				if (!key_exists($key, $data)) {
 					continue;
 				}
 			} else {
@@ -1776,7 +1760,27 @@ class Request implements ArrayAccess
 		return (int) $this->server('REMOTE_PORT', '');
 	}
 
+	/**
+	 * 当前请求 HTTP_CONTENT_TYPE
+	 * @access public
+	 * @return string
+	 */
+	public function contentType(): string
+	{
+		$contentType = $this->header('Content-Type');
 
+
+	        if ($contentType) {
+	            if (strpos($contentType, ';')) {
+	                [$type] = explode(';', $contentType);
+	            } else {
+	                $type = $contentType;
+	            }
+	            return trim($type);
+	        }
+
+	        return '';
+	    }
 
 	/**
 	 * 获取当前请求的安全Key
@@ -1876,7 +1880,7 @@ class Request implements ArrayAccess
 		$type  = is_callable($type) ? $type : 'md5';
 		$token = call_user_func($type, $this->server('REQUEST_TIME_FLOAT'));
 
-		$this->session->set($name, $token);
+		session($name, $token);
 
 		return $token;
 	}
@@ -1898,10 +1902,10 @@ class Request implements ArrayAccess
 		if (!$session_token) {
 			// 令牌数据无效
 			return false;
-		}else{
-			session($token,NULL); // 验证完成销毁session 防止重复提交
 		}
-
+		
+		session($token,NULL); // 验证完成销毁session 防止重复提交
+	
 		// Header验证
 		if ($this->header('X-CSRF-TOKEN') && $session_token === $this->header('X-CSRF-TOKEN')) {
 			return true;
@@ -2046,40 +2050,18 @@ class Request implements ArrayAccess
 		return $this;
 	}
 
-	/**
-	 * 设置ROUTE变量
-	 * @access public
-	 * @param  array $route 数据
-	 * @return $this
-	 */
-	public function withRoute(array $route)
-	{
-		$this->route = $route;
-		$this->mergeParam = false;
-		return $this;
-	}
+	    /**
+	     * 设置ROUTE变量
+	     * @access public
+	     * @param  array $route 数据
+	     * @return $this
+	     */
+	    public function withRoute(array $route)
+	    {
+	        $this->route = $route;
+	        return $this;
+	    }
 
-	/**
-	 * 是否允许请求缓存
-	 * @access public
-	 * @return bool
-	 */
-	public function isAllowCache()
-	{
-		return $this->allowCache;
-	}
-	/**
-	 * 是否允许请求缓存
-	 * @access public
-	 * @param  bool $cache 允许请求缓存
-	 * @return $this
-	 */
-	public function allowCache(bool $cache)
-	{
-		$this->allowCache = $cache;
-
-		return $this;
-	}
 	/**
 	 * 设置中间传递数据
 	 * @access public
@@ -2114,19 +2096,23 @@ class Request implements ArrayAccess
 	}
 
 	// ArrayAccess
+	 #[\ReturnTypeWillChange]
 	public function offsetExists($name): bool
 	{
 		return $this->has($name);
 	}
 
+	#[\ReturnTypeWillChange]
 	public function offsetGet($name)
 	{
 		return $this->param($name);
 	}
 
+   	#[\ReturnTypeWillChange]
 	public function offsetSet($name, $value)
 	{}
 
+ 	#[\ReturnTypeWillChange]
 	public function offsetUnset($name)
 	{}
 

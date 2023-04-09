@@ -31,7 +31,7 @@ class Apcu{
 		//如果id或缓存不存在  创建id与session
 		if(empty($id) || !apcu_exists($id)) {
 			do{
-                $id=$config['prefix'].md5(number_format(microtime(true),10));
+                $id=$config['prefix'].bin2hex(random_bytes(8));
 			}while(!apcu_add($id, [],$config['expire']));//add不会盖
 		}
 		

@@ -2,6 +2,8 @@
 declare (strict_types = 1);
 namespace pidan;
 use Closure;
+use pidan\event\RouteLoaded;
+
 /**
  * 系统服务基础类
  * @method void register()
@@ -49,5 +51,4 @@ abstract class Service
             $console->addCommands($commands);
         });
     }
-
 }

@@ -1,8 +1,8 @@
 <?php
 declare (strict_types = 1);
 use pidan\Response;
-use think\route\Url as UrlBuild;
-use think\facade\Cookie;
+use pidan\route\Url as UrlBuild;
+use pidan\facade\Cookie;
 
 /**
  * 快速获取容器中的实例 支持依赖注入
@@ -99,12 +99,12 @@ function cookie(string $name, $value = '', $option = null)
 }
 
 /**
- * 获取\think\response\Download对象实例
+ * 获取\pidan\response\Download对象实例
  * @param string $filename 要下载的文件
  * @param string $name     显示文件名
  * @param bool   $content  是否为内容
  * @param int    $expire   有效期（秒）
- * @return \think\response\File
+ * @return \pidan\response\File
  */
 function download(string $filename, string $name = '', bool $content = false, int $expire = 180): File
 {
@@ -198,12 +198,12 @@ function invoke($call, array $args = [])
 }
 
 /**
- * 获取\think\response\Json对象实例
+ * 获取\pidan\response\Json对象实例
  * @param mixed $data    返回的数据
  * @param int   $code    状态码
  * @param array $header  头部
  * @param array $options 参数
- * @return \think\response\Json
+ * @return \pidan\response\Json
  */
 function json($data = [], $code = 200, $header = [], $options = []): Json
 {
@@ -211,12 +211,12 @@ function json($data = [], $code = 200, $header = [], $options = []): Json
 }
 
 /**
- * 获取\think\response\Jsonp对象实例
+ * 获取\pidan\response\Jsonp对象实例
  * @param mixed $data    返回的数据
  * @param int   $code    状态码
  * @param array $header  头部
  * @param array $options 参数
- * @return \think\response\Jsonp
+ * @return \pidan\response\Jsonp
  */
 function jsonp($data = [], $code = 200, $header = [], $options = []): Jsonp
 {
@@ -409,12 +409,12 @@ function validate($validate = '', array $message = [], bool $batch = false, bool
 }
 
 /**
- * 获取\think\response\Xml对象实例
+ * 获取\pidan\response\Xml对象实例
  * @param mixed $data    返回的数据
  * @param int   $code    状态码
  * @param array $header  头部
  * @param array $options 参数
- * @return \think\response\Xml
+ * @return \pidan\response\Xml
  */
 function xml($data = [], $code = 200, $header = [], $options = []): Xml
 {
@@ -427,7 +427,7 @@ function xml($data = [], $code = 200, $header = [], $options = []): Xml
  * @param string $path
  * @return string
  */
-function app_path($path = '')
+function app_path($path = ''): string
 {
 	return app()->getAppPath() . ($path ? $path . DIRECTORY_SEPARATOR : $path);
 }
@@ -438,7 +438,7 @@ function app_path($path = '')
  * @param string $path
  * @return string
  */
-function base_path($path = '')
+function base_path($path = ''): string
 {
 	return app()->getBasePath() . ($path ? $path . DIRECTORY_SEPARATOR : $path);
 }
@@ -449,9 +449,9 @@ function base_path($path = '')
  * @param string $path
  * @return string
  */
-function public_path($path = '')
+function public_path($path = ''): string
 {
-	return app()->getRootPath() . ($path ? ltrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR : $path);
+	return app()->getRootPath() . 'public' . DIRECTORY_SEPARATOR . ($path ? ltrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR : $path);
 }
 
 /**
@@ -460,7 +460,7 @@ function public_path($path = '')
  * @param string $path
  * @return string
  */
-function runtime_path($path = '')
+function runtime_path($path = ''): string
 {
 	return app()->getRuntimePath() . ($path ? $path . DIRECTORY_SEPARATOR : $path);
 }
@@ -470,7 +470,7 @@ function runtime_path($path = '')
  * @param string $path
  * @return string
  */
-function root_path($path = '')
+function root_path($path = ''): string
 {
 	return app()->getRootPath() . ($path ? $path . DIRECTORY_SEPARATOR : $path);
 }
@@ -482,28 +482,33 @@ function app_debug(){
 /**
  * 用在单线程中 共用redis
  */
-function redis(){
-	static $redis=NULL;
-	if($redis===NULL){
+function redis($select=NULL){
+	static $redis=[];
+	if(empty($redis[$select])){
 		$config=app('config')->get('cache.stores.redis');
+
 		//无空闲连接，创建新连接
-		$redis = new Redis();
+		$redis[$select] = new Redis();
 		do{
 			if ($config['persistent']) {
-				$res=$redis->pconnect($config['host'], (int) $config['port'], (int) $config['timeout'], 'persistent_id_' . $config['select']);
+				$res=$redis[$select]->pconnect($config['host'], (int) $config['port'], (int) $config['timeout'], 'persistent_id_' . $config['select']);
 			} else {
-				$res=$redis->connect($config['host'], (int) $config['port'], (int) $config['timeout']);
+				$res=$redis[$select]->connect($config['host'], (int) $config['port'], (int) $config['timeout']);
 			}
 		}while(!$res);
 
 		if ('' != $config['password']){
-			$redis->auth($config['password']);
+			$redis[$select]->auth($config['password']);
 		}
-		if (0 != $config['select']){
-			$redis->select($config['select']);
+
+		//var_dump($select);echo 'bb';
+
+		if($select!=0){
+			$redis[$select]->select($select===NULL ? $config['select'] : $select);
+			//var_dump($select);echo 'cc';
 		}
 	}
-	return $redis;
+	return $redis[$select];
 }
 
 

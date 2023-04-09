@@ -13,17 +13,17 @@ class Redis{
 	protected $expire;
 	
 	//如果有sid  读   没有建  如果有cookie sid =read session memery table 
-	public function __construct(string $id,int $expire) {
+	public function __construct(string $id,int $expire,$select) {
 		$this->id=$id;
 		$this->expire=$expire;
-		$this->handler=redis();
+		$this->handler=redis($select);
 	}
 	public static function __make()
 	{	
 		//取id
-		$handler=redis();
-		$cookie=app('cookie');
 		$config=app('config')->get('session');
+		$handler=redis($config['select']);
+		$cookie=app('cookie');
 		if(PHP_SAPI == 'cli'){
 			$id=$cookie->get($config['name']);
 		}else{
@@ -35,7 +35,7 @@ class Redis{
 
             $count=0;
             do{
-                if(empty($id) || $count>0)$id=$config['prefix'].md5(number_format(microtime(true),10));
+                if(empty($id) || $count>0)$id=$config['prefix'].bin2hex(random_bytes(8));
                 $count++;
 			}while($handler->exists($id));
 
@@ -49,7 +49,7 @@ class Redis{
 			}
 		}
 
-		return new static($id,$handler->ttl($id));
+		return new static($id,$handler->ttl($id),$config['select']);
 	}
 	public function getId(){
 		return $this->id;

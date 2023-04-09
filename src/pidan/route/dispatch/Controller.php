@@ -71,35 +71,42 @@ class Controller extends Dispatch
 		return $this->app->middleware->pipeline('controller')
 			->send($this->request)
 			->then(function () use ($instance) {
-				// 获取当前操作名
-				$suffix = $this->rule->config('action_suffix');
-				$action = $this->actionName . $suffix;
+			// 获取当前操作名
+			$suffix = $this->rule->config('action_suffix');
+			$action = $this->actionName . $suffix;
 
-				if (is_callable([$instance, $action])) {
-					$vars = $this->request->param();
-					try {
-						$reflect = new ReflectionMethod($instance, $action);
-						// 严格获取当前操作方法名
-						$actionName = $reflect->getName();
-						if ($suffix) {
-							$actionName = substr($actionName, 0, -strlen($suffix));
-						}
-
-						$this->request->setAction($actionName);
-					} catch (ReflectionException $e) {
-						$reflect = new ReflectionMethod($instance, '__call');
-						$vars    = [$action, $vars];
-						$this->request->setAction($action);
+			if (is_callable([$instance, $action])) {
+				$vars = $this->request->param();
+				try {
+					$reflect = new ReflectionMethod($instance, $action);
+					// 严格获取当前操作方法名
+					$actionName = $reflect->getName();
+					if ($suffix) {
+						$actionName = substr($actionName, 0, -strlen($suffix));
 					}
-				} else {
-					// 操作不存在
-					throw new \RuntimeException('method not exists:' . get_class($instance) . '->' . $action . '()');
+
+					$this->request->setAction($actionName);
+				} catch (ReflectionException $e) {
+					$reflect = new ReflectionMethod($instance, '__call');
+					$vars    = [$action, $vars];
+					$this->request->setAction($action);
 				}
+			} else {
+				// 操作不存在
+				throw new \RuntimeException('method not exists:' . get_class($instance) . '->' . $action . '()');
+			}
 
-				$data = $this->app->invokeReflectMethod($instance, $reflect, $vars);
+			$data = $this->app->invokeReflectMethod($instance, $reflect, $vars);
 
-				return $this->autoResponse($data);
-			});
+			return $this->autoResponse($data);
+		});
+	}
+
+	protected function parseActions($actions)
+	{
+		return array_map(function ($item) {
+		return strtolower($item);
+		}, is_string($actions) ? explode(",", $actions) : $actions);
 	}
 
 	/**
@@ -117,33 +124,37 @@ class Controller extends Dispatch
 			$reflectionProperty->setAccessible(true);
 
 			$middlewares = $reflectionProperty->getValue($controller);
+			$action      = $this->request->action(true);
 
 			foreach ($middlewares as $key => $val) {
 				if (!is_int($key)) {
-					if (isset($val['only']) && !in_array($this->request->action(true), array_map(function ($item) {
-						return strtolower($item);
-					}, is_string($val['only']) ? explode(",", $val['only']) : $val['only']))) {
-						continue;
-					} elseif (isset($val['except']) && in_array($this->request->action(true), array_map(function ($item) {
-						return strtolower($item);
-					}, is_string($val['except']) ? explode(',', $val['except']) : $val['except']))) {
-						continue;
-					} else {
-						$val = $key;
-					}
+				    $middleware = $key;
+				    $options    = $val;
+				} elseif (isset($val['middleware'])) {
+				    $middleware = $val['middleware'];
+				    $options    = $val['options'] ?? [];
+				} else {
+				    $middleware = $val;
+				    $options    = [];
 				}
 
-				if (is_string($val) && strpos($val, ':')) {
-					$val = explode(':', $val);
-					if (count($val) > 1) {
-						$val = [$val[0], array_slice($val, 1)];
-					}
+				if (isset($options['only']) && !in_array($action, $this->parseActions($options['only']))) {
+				    continue;
+				} elseif (isset($options['except']) && in_array($action, $this->parseActions($options['except']))) {
+				    continue;
 				}
 
-				$this->app->middleware->controller($val);
-			}
-		}
-	}
+				if (is_string($middleware) && strpos($middleware, ':')) {
+				    $middleware = explode(':', $middleware);
+				    if (count($middleware) > 1) {
+				        $middleware = [$middleware[0], array_slice($middleware, 1)];
+				    }
+				}
+
+				$this->app->middleware->controller($middleware);
+            }
+        }
+    }
 
 	/**
 	 * 实例化访问控制器

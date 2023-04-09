@@ -3,6 +3,7 @@ declare (strict_types = 1);
 
 namespace pidan\route;
 
+use Psr\Http\Message\ResponseInterface;
 use pidan\App;
 use pidan\Container;
 use pidan\Request;
@@ -60,36 +61,33 @@ abstract class Dispatch
 		$this->doRouteAfter();
 	}
 
-	/**
-	 * 执行路由调度
-	 * @access public
-	 * @return mixed
-	 */
-	public function run(): Response
-	{
-		if ($this->rule instanceof RuleItem && $this->request->method() == 'OPTIONS' && $this->rule->isAutoOptions()) {
-			$rules = $this->rule->getRouter()->getRule($this->rule->getRule());
-			$allow = [];
-			foreach ($rules as $item) {
-				$allow[] = strtoupper($item->getMethod());
-			}
+    /**
+     * 执行路由调度
+     * @access public
+     * @return mixed
+     */
+    public function run(): Response
+    {
+        $data = $this->exec();
+        return $this->autoResponse($data);
+    }
 
-			return Response::create('', 'html', 204)->header(['Allow' => implode(', ', $allow)]);
-		}
-		$data = $this->exec();
-		return $this->autoResponse($data);
-	}
+    protected function autoResponse($data): Response
+    {
+        if ($data instanceof Response) {
+            $response = $data;
+        } elseif ($data instanceof ResponseInterface) {
+            $response = Response::create((string) $data->getBody(), 'html', $data->getStatusCode());
 
-	protected function autoResponse($data): Response
-	{
-		if ($data instanceof Response) {
-			$response = $data;
-		} elseif (!is_null($data)) {
-			// 默认自动识别响应输出类型
-			$type     = $this->request->isJson() ? 'json' : 'html';
-			$response = Response::create($data, $type);
-		} else {
-			$data = ob_get_clean();
+            foreach ($data->getHeaders() as $header => $values) {
+                $response->header([$header => implode(", ", $values)]);
+            }
+        } elseif (!is_null($data)) {
+            // 默认自动识别响应输出类型
+            $type     = $this->request->isJson() ? 'json' : 'html';
+            $response = Response::create($data, $type);
+        } else {
+            $data = ob_get_clean();
 
 			$content  = false === $data ? '' : $data;
 			$status   = '' === $content && $this->request->isJson() ? 204 : 200;

@@ -311,7 +311,7 @@ class Url
             }
 
             if (empty($pattern)) {
-                return [rtrim($url, '?/-'), $domain, $suffix];
+                return [rtrim($url, '?-'), $domain, $suffix];
             }
 
             $type = $this->route->config('url_common_param');
@@ -322,11 +322,11 @@ class Url
                     $url    = str_replace(['[:' . $key . ']', '<' . $key . '?>', ':' . $key, '<' . $key . '>'], $type ? (string) $vars[$key] : urlencode((string) $vars[$key]), $url);
                     $keys[] = $key;
                     $url    = str_replace(['/?', '-?'], ['/', '-'], $url);
-                    $result = [rtrim($url, '?/-'), $domain, $suffix];
+                    $result = [rtrim($url, '?-'), $domain, $suffix];
                 } elseif (2 == $val) {
                     $url    = str_replace(['/[:' . $key . ']', '[:' . $key . ']', '<' . $key . '?>'], '', $url);
                     $url    = str_replace(['/?', '-?'], ['/', '-'], $url);
-                    $result = [rtrim($url, '?/-'), $domain, $suffix];
+                    $result = [rtrim($url, '?-'), $domain, $suffix];
                 } else {
                     $result = null;
                     $keys   = [];
@@ -349,7 +349,7 @@ class Url
      * @access public
      * @return string
      */
-    public function build()
+    public function build(): string
     {
         // 解析URL
         $url     = $this->url;

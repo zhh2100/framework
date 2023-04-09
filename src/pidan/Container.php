@@ -4,94 +4,154 @@ declare (strict_types = 1);
 namespace pidan;
 
 use ArrayAccess;
-use Countable;
+use ArrayIterator;
 use Closure;
+use Countable;
+use InvalidArgumentException;
+use IteratorAggregate;
+#use Psr\Container\ContainerInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
 use RuntimeException;
-use InvalidArgumentException;
+use pidan\helper\Str;
 
+use Traversable;
 
 /**
- * App 基础类
+* 容器管理类 支持PSR-11
  */
-class Container implements ArrayAccess,  Countable
+class Container implements  ArrayAccess, IteratorAggregate, Countable
 {
-	/**
-	 * 容器对象实例
-	 * @var Container|Closure
-	 */
-	protected static $instance;
-
-	/**
-	 * 容器中的对象实例
-	 * @var array
-	 */
-	protected $instances = [];
-	/**
-	 * 容器绑定标识
-	 * @var array
-	 */
-	protected $bind = [];
-	/**
-	 * 容器回调
-	 * @var array
-	 */
-	protected $invokeCallback = [];
-
-
-	/**
-	 * 设置当前容器的实例
-	 * @access public
-	 * @param object|Closure $instance
-	 * @return void
-	 */
-	public static function setInstance($instance): void
-	{
-		static::$instance = $instance;
-	}
-	/**
-	 * 获取当前容器的实例（单例）
-	 * @access public
-	 * @return static
-	 */
-	public static function getInstance()
-	{
-		if (is_null(static::$instance)) {
-			static::$instance = new static;
-		}elseif (static::$instance instanceof Closure) {
-			return (static::$instance)();
-		}
-		return static::$instance;
-	}
-	/**
-	 * 绑定一个类实例到容器
-	 * @access public
-	 * @param string $abstract 类名或者标识
-	 * @param object $instance 类的实例
-	 * @return $this
-	 */
-	public function instance(string $abstract, $instance)
-	{
-        $abstract = $this->getAlias($abstract);
-		$this->instances[$abstract] = $instance;
-		return $this;
-	}
     /**
-     * 判断容器中是否存在对象实例
-     * @access public
-     * @param string $abstract 类名或者标识
-     * @return bool
+     * 容器对象实例
+     * @var Container|Closure
      */
-    public function exists(string $abstract): bool
+    protected static $instance;
+
+    /**
+     * 容器中的对象实例
+     * @var array
+     */
+    protected $instances = [];
+
+    /**
+     * 容器绑定标识
+     * @var array
+     */
+    protected $bind = [];
+
+    /**
+     * 容器回调
+     * @var array
+     */
+    protected $invokeCallback = [];
+
+    /**
+     * 获取当前容器的实例（单例）
+     * @access public
+     * @return static
+     */
+    public static function getInstance()
     {
+        if (is_null(static::$instance)) {
+            static::$instance = new static;
+        }
+
+        if (static::$instance instanceof Closure) {
+            return (static::$instance)();
+        }
+
+        return static::$instance;
+    }
+
+    /**
+     * 设置当前容器的实例
+     * @access public
+     * @param object|Closure $instance
+     * @return void
+     */
+    public static function setInstance($instance): void
+    {
+        static::$instance = $instance;
+    }
+
+    /**
+     * 注册一个容器对象回调
+     *
+     * @param string|Closure $abstract
+     * @param Closure|null   $callback
+     * @return void
+     */
+    public function resolving($abstract, Closure $callback = null): void
+    {
+        if ($abstract instanceof Closure) {
+            $this->invokeCallback['*'][] = $abstract;
+            return;
+        }
+
         $abstract = $this->getAlias($abstract);
 
-        return isset($this->instances[$abstract]);
+        $this->invokeCallback[$abstract][] = $callback;
     }
+
+    /**
+     * 获取容器中的对象实例 不存在则创建
+     * @template T
+     * @param string|class-string<T> $abstract    类名或者标识
+     * @param array                  $vars        变量
+     * @param bool                   $newInstance 是否每次创建新的实例
+     * @return T|object
+     */
+    public static function pull(string $abstract, array $vars = [], bool $newInstance = false)
+    {
+        return static::getInstance()->make($abstract, $vars, $newInstance);
+    }
+
+    /**
+     * 获取容器中的对象实例
+     * @template T
+     * @param string|class-string<T> $abstract 类名或者标识
+     * @return T|object
+     */
+    public function get($abstract)
+    {
+        if ($this->has($abstract)) {
+            return $this->make($abstract);
+        }
+
+        throw new RuntimeException('class not exists: ' . $abstract);
+    }
+
+    /**
+     * 绑定一个类、闭包、实例、接口实现到容器
+     * @access public
+     * @param string|array $abstract 类标识、接口
+     * @param mixed        $concrete 要绑定的类、闭包或者实例
+     * @return $this
+     */
+    public function bind($abstract, $concrete = null)
+    {
+        if (is_array($abstract)) {
+            foreach ($abstract as $key => $val) {
+                $this->bind($key, $val);
+            }
+        } elseif ($concrete instanceof Closure) {
+            $this->bind[$abstract] = $concrete;
+        } elseif (is_object($concrete)) {
+            $this->instance($abstract, $concrete);
+        } else {
+            $abstract = $this->getAlias($abstract);
+            if ($abstract != $concrete) {
+                $this->bind[$abstract] = $concrete;
+            }
+        }
+
+        return $this;
+    }
+
     /**
      * 根据别名获取真实类名    返回最后一个字串
      * @param  string $abstract
@@ -109,75 +169,88 @@ class Container implements ArrayAccess,  Countable
 
         return $abstract;
     }
+
     /**
-	 * 注册一个容器对象回调
-	 *
-	 * @param string|Closure $abstract
-	 * @param Closure|null   $callback
-	 * @return void
-	 */
-	public function resolving($abstract, Closure $callback = null): void
-	{
-		if ($abstract instanceof Closure) {
-			$this->invokeCallback['*'][] = $abstract;
-			return;
-		}
+     * 绑定一个类实例到容器
+     * @access public
+     * @param string $abstract 类名或者标识
+     * @param object $instance 类的实例
+     * @return $this
+     */
+    public function instance(string $abstract, $instance)
+    {
         $abstract = $this->getAlias($abstract);
-		$this->invokeCallback[$abstract][] = $callback;
-	}
-	/**
-	 * 绑定一个类、闭包、实例、接口实现到容器
-	 * @access public
-	 * @param string|array $abstract 类标识、接口
-	 * @param mixed        $concrete 要绑定的类、闭包或者实例
-	 * @return $this
-	 */
-	public function bind($abstract, $concrete = null)
-	{
-		if (is_array($abstract)) {
-			foreach ($abstract as $key => $val) {
-				$this->bind($key, $val);
-			}
-		} elseif ($concrete instanceof Closure) {
-			$this->bind[$abstract] = $concrete;
-		} elseif (is_object($concrete)) {
-			$this->instance($abstract, $concrete);
-		} else {
-            $abstract = $this->getAlias($abstract);
-			if ($abstract != $concrete) {
-				$this->bind[$abstract] = $concrete;
-			}
-		}
-		return $this;
-	}
-	/**
-	 * 创建类的实例 已经存在则直接获取
-	 * @access public
-	 * @param string $abstract    类名或者标识
-	 * @param array  $vars        变量
-	 * @param bool   $newInstance 是否每次创建新的实例
-	 * @return mixed
-	 */
-	public function make(string $abstract, array $vars = [], bool $newInstance = false)
-	{
+
+        $this->instances[$abstract] = $instance;
+
+        return $this;
+    }
+
+    /**
+     * 判断容器中是否存在类及标识
+     * @access public
+     * @param string $abstract 类名或者标识
+     * @return bool
+     */
+    public function bound(string $abstract): bool
+    {
+        return isset($this->bind[$abstract]) || isset($this->instances[$abstract]);
+    }
+
+    /**
+     * 判断容器中是否存在类及标识
+     * @access public
+     * @param string $name 类名或者标识
+     * @return bool
+     */
+    public function has($name): bool
+    {
+        return $this->bound($name);
+    }
+
+    /**
+     * 判断容器中是否存在对象实例
+     * @access public
+     * @param string $abstract 类名或者标识
+     * @return bool
+     */
+    public function exists(string $abstract): bool
+    {
         $abstract = $this->getAlias($abstract);
-		if (isset($this->instances[$abstract]) && !$newInstance) {
-			return $this->instances[$abstract];
-		}
 
-		if (isset($this->bind[$abstract]) && $this->bind[$abstract] instanceof Closure) {
-			$object = $this->invokeFunction($this->bind[$abstract], $vars);
-		} else {
-		  $object = $this->invokeClass($abstract, $vars);
-		}
+        return isset($this->instances[$abstract]);
+    }
 
-		if (!$newInstance) {
-			$this->instances[$abstract] = $object;
-		}
+    /**
+     * 创建类的实例 已经存在则直接获取
+     * @template T
+     * @param string|class-string<T> $abstract    类名或者标识
+     * @param array                  $vars        变量
+     * @param bool                   $newInstance 是否每次创建新的实例
+     * @return T|object
+     */
+    public function make(string $abstract, array $vars = [], bool $newInstance = false)
+    {
+        $abstract = $this->getAlias($abstract);
 
-		return $object;
-	}
-	/**
+        if (isset($this->instances[$abstract]) && !$newInstance) {
+            return $this->instances[$abstract];
+        }
+
+        if (isset($this->bind[$abstract]) && $this->bind[$abstract] instanceof Closure) {
+            $object = $this->invokeFunction($this->bind[$abstract], $vars);
+        } else {
+            $object = $this->invokeClass($abstract, $vars);
+        }
+
+        if (!$newInstance) {
+            $this->instances[$abstract] = $object;
+        }
+
+        return $object;
+    }
+
+    /**
      * 删除容器中的对象实例
      * @access public
      * @param string $name 类名或者标识
@@ -191,6 +264,62 @@ class Container implements ArrayAccess,  Countable
             unset($this->instances[$name]);
         }
     }
+
+    /**
+     * 执行函数或者闭包方法 支持参数调用
+     * @access public
+     * @param string|Closure $function 函数或者闭包
+     * @param array          $vars     参数
+     * @return mixed
+     */
+    public function invokeFunction($function, array $vars = [])
+    {
+        try {
+            $reflect = new ReflectionFunction($function);
+        } catch (ReflectionException $e) {
+            throw new FuncNotFoundException("function not exists: {$function}()", $function, $e);
+        }
+
+        $args = $this->bindParams($reflect, $vars);
+
+        return $function(...$args);
+    }
+
+    /**
+     * 调用反射执行类的方法 支持参数绑定
+     * @access public
+     * @param mixed $method     方法
+     * @param array $vars       参数
+     * @param bool  $accessible 设置是否可访问
+     * @return mixed
+     */
+    public function invokeMethod($method, array $vars = [], bool $accessible = false)
+    {
+        if (is_array($method)) {
+            [$class, $method] = $method;
+
+            $class = is_object($class) ? $class : $this->invokeClass($class);
+        } else {
+            // 静态方法
+            [$class, $method] = explode('::', $method);
+        }
+
+        try {
+            $reflect = new ReflectionMethod($class, $method);
+        } catch (ReflectionException $e) {
+            $class = is_object($class) ? get_class($class) : $class;
+		throw new RuntimeException('method not exists: ' . $class . '::' . $method . '()');
+        }
+
+        $args = $this->bindParams($reflect, $vars);
+
+        if ($accessible) {
+            $reflect->setAccessible($accessible);
+        }
+
+        return $reflect->invokeArgs(is_object($class) ? $class : null, $args);
+    }
+
     /**
      * 调用反射执行类的方法 支持参数绑定
      * @access public
@@ -206,130 +335,83 @@ class Container implements ArrayAccess,  Countable
         return $reflect->invokeArgs($instance, $args);
     }
 
-	/**
-	 * 调用反射执行callable 支持参数绑定
-	 * @access public
-	 * @param mixed $callable
-	 * @param array $vars       参数
-	 * @param bool  $accessible 设置是否可访问
-	 * @return mixed
-	 */
-	public function invoke($callable, array $vars = [], bool $accessible = false)
-	{
-		if ($callable instanceof Closure) {
-			return $this->invokeFunction($callable, $vars);
-		} elseif (is_string($callable) && false === strpos($callable, '::')) {
-			return $this->invokeFunction($callable, $vars);
-		} else {
-			return $this->invokeMethod($callable, $vars, $accessible);
-		}
-	}
+    /**
+     * 调用反射执行callable 支持参数绑定
+     * @access public
+     * @param mixed $callable
+     * @param array $vars       参数
+     * @param bool  $accessible 设置是否可访问
+     * @return mixed
+     */
+    public function invoke($callable, array $vars = [], bool $accessible = false)
+    {
+        if ($callable instanceof Closure) {
+            return $this->invokeFunction($callable, $vars);
+        } elseif (is_string($callable) && false === strpos($callable, '::')) {
+            return $this->invokeFunction($callable, $vars);
+        } else {
+            return $this->invokeMethod($callable, $vars, $accessible);
+        }
+    }
 
-	/**
-	 * 执行函数或者闭包方法 支持参数调用
-	 * @access public
-	 * @param string|Closure $function 函数或者闭包
-	 * @param array          $vars     参数
-	 * @return mixed
-	 */
-	public function invokeFunction($function, array $vars = [])
-	{
-		try {
-			$reflect = new ReflectionFunction($function);
-		} catch (ReflectionException $e) {
-			throw new RuntimeException("function not exists: {$function}()");
-		}
+    /**
+     * 调用反射执行类的实例化 支持依赖注入
+     * @access public
+     * @param string $class 类名
+     * @param array  $vars  参数
+     * @return mixed
+     */
+    public function invokeClass(string $class, array $vars = [])
+    {
+        try {
+            $reflect = new ReflectionClass($class);
+        } catch (ReflectionException $e) {
+		throw new RuntimeException('class not exists: ' . $class);
+        }
 
-		$args = $this->bindParams($reflect, $vars);
+        if ($reflect->hasMethod('__make')) {
+            $method = $reflect->getMethod('__make');
+            if ($method->isPublic() && $method->isStatic()) {
+                $args   = $this->bindParams($method, $vars);
+                $object = $method->invokeArgs(null, $args);
+                $this->invokeAfter($class, $object);
+                return $object;
+            }
+        }
 
-		return $function(...$args);
-	}
-	/**
-	 * 调用反射执行类的实例化 支持依赖注入
-	 * @access public
-	 * @param string $class 类名
-	 * @param array  $vars  参数
-	 * @return mixed
-	 */
-	public function invokeClass(string $class, array $vars = [])
-	{
-		try {
-			$reflect = new ReflectionClass($class);
-		} catch (ReflectionException $e) {
-			throw new RuntimeException('class not exists: ' . $class);
-		}
+        $constructor = $reflect->getConstructor();
 
-		if ($reflect->hasMethod('__make')) {
-			$method = $reflect->getMethod('__make');
-			if ($method->isPublic() && $method->isStatic()) {
-				$args = $this->bindParams($method, $vars);
-				return $method->invokeArgs(null, $args);
-			}
-		}
+        $args = $constructor ? $this->bindParams($constructor, $vars) : [];
 
-		$constructor = $reflect->getConstructor();
+        $object = $reflect->newInstanceArgs($args);
 
-		$args = $constructor ? $this->bindParams($constructor, $vars) : [];
-		$object = $reflect->newInstanceArgs($args);
-		$this->invokeAfter($class, $object);
+        $this->invokeAfter($class, $object);
 
-		return $object;
-	}
-	/**
-	 * 调用反射执行类的方法 支持参数绑定
-	 * @access public
-	 * @param mixed $method     方法
-	 * @param array $vars       参数
-	 * @param bool  $accessible 设置是否可访问
-	 * @return mixed
-	 */
-	public function invokeMethod($method, array $vars = [], bool $accessible = false)
-	{
-		if (is_array($method)) {
-			[$class, $method] = $method;
+        return $object;
+    }
 
-			$class = is_object($class) ? $class : $this->invokeClass($class);
-		} else {
-			// 静态方法
-			[$class, $method] = explode('::', $method);
-		}
+    /**
+     * 执行invokeClass回调
+     * @access protected
+     * @param string $class  对象类名
+     * @param object $object 容器对象实例
+     * @return void
+     */
+    protected function invokeAfter(string $class, $object): void
+    {
+        if (isset($this->invokeCallback['*'])) {
+            foreach ($this->invokeCallback['*'] as $callback) {
+                $callback($object, $this);
+            }
+        }
 
-		try {
-			$reflect = new ReflectionMethod($class, $method);
-		} catch (ReflectionException $e) {
-			$class = is_object($class) ? get_class($class) : $class;
-			throw new RuntimeException('method not exists: ' . $class . '::' . $method . '()');
-		}
+        if (isset($this->invokeCallback[$class])) {
+            foreach ($this->invokeCallback[$class] as $callback) {
+                $callback($object, $this);
+            }
+        }
+    }
 
-		$args = $this->bindParams($reflect, $vars);
-
-		if ($accessible) {
-			$reflect->setAccessible($accessible);
-		}
-
-		return $reflect->invokeArgs(is_object($class) ? $class : null, $args);
-	}
-	/**
-	 * 执行invokeClass回调
-	 * @access protected
-	 * @param string $class  对象类名
-	 * @param object $object 容器对象实例
-	 * @return void
-	 */
-	protected function invokeAfter(string $class, $object): void
-	{
-		if (isset($this->invokeCallback['*'])) {
-			foreach ($this->invokeCallback['*'] as $callback) {
-				$callback($object, $this);
-			}
-		}
-
-		if (isset($this->invokeCallback[$class])) {
-			foreach ($this->invokeCallback[$class] as $callback) {
-				$callback($object, $this);
-			}
-		}
-	}
     /**
      * 绑定参数
      * @access protected
@@ -351,7 +433,7 @@ class Container implements ArrayAccess,  Countable
 
         foreach ($params as $param) {
             $name           = $param->getName();
-            $lowerName      = \pidan\helper\Str::snake($name);
+            $lowerName      = Str::snake($name);
             $reflectionType = $param->getType();
 
             if ($param->isVariadic()) {
@@ -373,27 +455,45 @@ class Container implements ArrayAccess,  Countable
 
         return $args;
     }
-	/**
-	 * 获取对象
-	 * @access protected
-	 * @param string $className 类名
-	 * @param array  $vars      参数
-	 * @return mixed
-	 */
-	protected function getObjectParam(string $className, array &$vars)
-	{
-		$array = $vars;
-		$value = array_shift($array);
 
-		if ($value instanceof $className) {
-			$result = $value;
-			array_shift($vars);
-		} else {
-			$result = $this->make($className);
-		}
+    /**
+     * 创建工厂对象实例
+     * @param string $name      工厂类名
+     * @param string $namespace 默认命名空间
+     * @param array  $args
+     * @return mixed
+     * @deprecated
+     * @access public
+     */
+    public static function factory(string $name, string $namespace = '', ...$args)
+    {
+        $class = false !== strpos($name, '\\') ? $name : $namespace . ucwords($name);
 
-		return $result;
-	}
+        return Container::getInstance()->invokeClass($class, $args);
+    }
+
+    /**
+     * 获取对象类型的参数值
+     * @access protected
+     * @param string $className 类名
+     * @param array  $vars      参数
+     * @return mixed
+     */
+    protected function getObjectParam(string $className, array &$vars)
+    {
+        $array = $vars;
+        $value = array_shift($array);
+
+        if ($value instanceof $className) {
+            $result = $value;
+            array_shift($vars);
+        } else {
+            $result = $this->make($className);
+        }
+
+        return $result;
+    }
+
     public function __set($name, $value)
     {
         $this->bind($name, $value);
@@ -401,8 +501,7 @@ class Container implements ArrayAccess,  Countable
 
     public function __get($name)
     {
-    	if(isset($this->bind[$name]) || isset($this->instances[$name]))
-        	return $this->make($name);
+        return $this->get($name);
     }
 
     public function __isset($name): bool
@@ -415,29 +514,39 @@ class Container implements ArrayAccess,  Countable
         $this->delete($name);
     }
 
-    public function offsetExists($key)
+    #[\ReturnTypeWillChange]
+    public function offsetExists($key): bool
     {
         return $this->exists($key);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetGet($key)//可以app()['pidan\Request']
     {
         return $this->make($key);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetSet($key, $value)
     {
         $this->bind($key, $value);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetUnset($key)
     {
         $this->delete($key);
     }
+
     //Countable
-    public function count()
+    public function count(): int
     {
         return count($this->instances);
     }
 
- }
+    //IteratorAggregate
+    public function getIterator(): Traversable
+    {
+        return new ArrayIterator($this->instances);
+    }
+}

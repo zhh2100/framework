@@ -28,7 +28,7 @@ class RuleItem extends Rule
      * @access public
      * @param  Route             $router 路由实例
      * @param  RuleGroup         $parent 上级对象
-     * @param  string            $name 路由标识
+     * @param  string|null       $name 路由标识
      * @param  string            $rule 路由规则
      * @param  string|\Closure   $route 路由地址
      * @param  string            $method 请求类型 RuleItem($this->router, $this, $name, $rule, $route, $method);
@@ -65,27 +65,6 @@ class RuleItem extends Rule
     public function isMiss(): bool
     {
         return $this->miss;
-    }
-
-    /**
-     * 设置当前路由为自动注册OPTIONS
-     * @access public
-     * @return $this
-     */
-    public function setAutoOptions()
-    {
-        $this->autoOption = true;
-        return $this;
-    }
-
-    /**
-     * 判断当前路由规则是否为自动注册的OPTIONS路由
-     * @access public
-     * @return bool
-     */
-    public function isAutoOptions(): bool
-    {
-        return $this->autoOption;
     }
 
     /**
@@ -186,7 +165,7 @@ class RuleItem extends Rule
         $url     = $this->urlSuffixCheck($request, $url, $option);
 
         if (is_null($match)) {
-            $match = $this->match($url, $option, $pattern, $completeMatch);
+            $match = $this->checkMatch($url, $option, $pattern, $completeMatch);
         }
 
         if (false !== $match) {
@@ -242,7 +221,7 @@ class RuleItem extends Rule
      * @param  bool      $completeMatch   是否完全匹配
      * @return array|false
      */
-    private function match(string $url, array $option, array $pattern, bool $completeMatch)
+    private function checkMatch(string $url, array $option, array $pattern, bool $completeMatch)
     {
         if (isset($option['complete_match'])) {
             $completeMatch = $option['complete_match'];

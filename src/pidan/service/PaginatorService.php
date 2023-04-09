@@ -1,11 +1,11 @@
 <?php
 declare (strict_types = 1);
 
-namespace think\service;
+namespace pidan\service;
 
-use think\Paginator;
-use think\paginator\driver\Bootstrap;
-use think\Service;
+use pidan\Paginator;
+use pidan\paginator\driver\Bootstrap;
+use pidan\Service;
 
 /**
  * 分页服务类

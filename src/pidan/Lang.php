@@ -9,34 +9,34 @@ namespace pidan;
  */
 class Lang
 {
-    protected $app;
+	protected $app;
 
-    /**
-     * 配置参数
-     * @var array
-     */
-    protected $config = [
-        // 默认语言
-        'default_lang'    => 'zh-cn',
-        // 允许的语言列表
-        'allow_lang_list' => [],
-        // 是否使用Cookie记录
-        'use_cookie'      => true,
-        // 扩展语言包
-        'extend_list'     => [],
-        // 多语言cookie变量
-        'cookie_var'      => 'think_lang',
-        // 多语言header变量
-        'header_var'      => 'think-lang',
-        // 多语言自动侦测变量名
-        'detect_var'      => 'lang',
-        // Accept-Language转义为对应语言包名称
-        'accept_language' => [
-            'zh-hans-cn' => 'zh-cn',
-        ],
-        // 是否支持语言分组
-        'allow_group'     => false,
-    ];
+	/**
+	 * 配置参数
+	 * @var array
+	 */
+	protected $config = [
+			// 默认语言
+			'default_lang'    => 'zh-cn',
+			// 允许的语言列表
+			'allow_lang_list' => [],
+			// 是否使用Cookie记录
+			'use_cookie'      => true,
+			// 扩展语言包
+			'extend_list'     => [],
+			// 多语言cookie变量
+			'cookie_var'      => 'pidan_lang',
+			// 多语言header变量
+			'header_var'      => 'pidan-lang',
+			// 多语言自动侦测变量名
+			'detect_var'      => 'lang',
+			// Accept-Language转义为对应语言包名称
+			'accept_language' => [
+					'zh-hans-cn' => 'zh-cn',
+			],
+			// 是否支持语言分组
+			'allow_group'     => false,
+	];
 
 	/**
 	 * 多语言信息
@@ -50,11 +50,11 @@ class Lang
 	 */
 	private $range = 'zh-cn';
 
-    /**
-     * apcu缓冲前缀    不为null开启缓冲
-     * @var string
-     */
-    protected $apcuPrefix;
+	/**
+	 * apcu缓冲前缀    不为null开启缓冲
+	 * @var string
+	 */
+	protected $apcuPrefix;
 
 	/**
 	 * 构造方法
@@ -65,9 +65,8 @@ class Lang
 	{
 		$this->config = array_merge($this->config, array_change_key_case($config));
 		$this->range  = $this->config['default_lang'];
-		$this->setApcuPrefix('lang_');
+		$this->setApcuPrefix('la_');
 		$this->app=app();
-		// 加载默认语言包	$this->switchLangSet($this->range);
 	}
 
 	public static function __make(Config $config)
@@ -124,66 +123,66 @@ class Lang
 		return $this->config['default_lang'];
 	}
 
-    /**
-     * 切换语言
-     * @access public
-     * @param string $langset 语言
-     * @return void
-     */
-    public function switchLangSet(string $langset)
-    {
-        if (empty($langset)) {
-            return;
-        }
+	/**
+	 * 切换语言
+	 * @access public
+	 * @param string $langset 语言
+	 * @return void
+	 */
+	public function switchLangSet(string $langset)
+	{
+		if (empty($langset)) {
+				return;
+		}
 
-        $this->setLangSet($langset);
+		$this->setLangSet($langset);
 
-        // 加载系统语言包
-        $this->load([
-		$this->app->getPidanPath() . 'pidan/lang/'  . $langset . '.php'
-        ]);
+		// 加载系统语言包
+		$this->load([
+			$this->app->getPidanPath() . 'pidan/lang/'  . $langset . '.php'
+		]);
 
-        // 加载系统语言包
-        $files = glob($this->app->getAppPath() . 'lang' . DIRECTORY_SEPARATOR . $langset . '.*');
-        $this->load($files);
+		// 加载应用语言包
+		$files = glob($this->app->getAppPath() . 'lang' . DIRECTORY_SEPARATOR . $langset . '.*');
+		$this->load($files);
 
-        // 加载扩展（自定义）语言包
-        $list = $this->app->config->get('lang.extend_list', []);
+		// 加载扩展（自定义）语言包
+		$list = $this->app->config->get('lang.extend_list', []);
 
-        if (isset($list[$langset])) {
-            $this->load($list[$langset]);
-        }
-    }
+		if (isset($list[$langset])) {
+				$this->load($list[$langset]);
+		}
+	}
 
-    /**
-     * 加载语言定义(不区分大小写)
-     * @access public
-     * @param string|array $file  语言文件
-     * @param string       $range 语言作用域
-     * @return array
-     */
-    public function load($file, $range = ''): array
-    {
-        $range = $range ?: $this->range;
-        if (!isset($this->lang[$range])) {
-            $this->lang[$range] = [];
-        }
+	/**
+	 * 加载语言定义(不区分大小写)
+	 * @access public
+	 * @param string|array $file  语言文件
+	 * @param string       $range 语言作用域
+	 * @return array
+	 */
+	public function load($file, $range = ''): array
+	{
+		$range = $range ?: $this->range;
+		if (!isset($this->lang[$range])) {
+				$this->lang[$range] = [];
+		}
 
 		$lang = [];
 
-        foreach ((array) $file as $name) {
-            if (is_file($name)) {
-                $result = $this->parse($name);
-                $lang   = $result + $lang;
-            }
-        }
+		foreach ((array) $file as $name) {
+				if (is_file($name)) {
+						$result = $this->parse($name);
+						$lang   = $result + $lang;
+				}
+		}
 
-	if (!empty($lang)) {
-		$this->lang[$range] = $lang + $this->lang[$range];
+		if (!empty($lang)) {
+			$this->lang[$range] = $lang + $this->lang[$range];
+		}
+
+		return $this->lang[$range];
 	}
-
-	return $this->lang[$range];
-    }
 
 	/**
 	 * 解析语言文件

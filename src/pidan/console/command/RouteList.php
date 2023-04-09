@@ -48,8 +48,8 @@ class RouteList extends Command
 
     protected function getRouteList(string $dir = null): string
     {
-        $this->app->route->setTestMode(true);
         $this->app->route->clear();
+        $this->app->route->lazy(false);
 
         if ($dir) {
             $path = $this->app->getRootPath() . 'route' . DIRECTORY_SEPARATOR . $dir . DIRECTORY_SEPARATOR;
@@ -83,14 +83,13 @@ class RouteList extends Command
 
         foreach ($routeList as $item) {
             $item['route'] = $item['route'] instanceof \Closure ? '<Closure>' : $item['route'];
+            $row           = [$item['rule'], $item['route'], $item['method'], $item['name']];
 
             if ($this->input->hasOption('more')) {
-                $item = [$item['rule'], $item['route'], $item['method'], $item['name'], $item['domain'], json_encode($item['option']), json_encode($item['pattern'])];
-            } else {
-                $item = [$item['rule'], $item['route'], $item['method'], $item['name']];
+                array_push($row, $item['domain'], json_encode($item['option']), json_encode($item['pattern']));
             }
 
-            $rows[] = $item;
+            $rows[] = $row;
         }
 
         if ($this->input->getOption('sort')) {

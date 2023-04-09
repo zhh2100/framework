@@ -7,21 +7,51 @@ use pidan\helper\Str;
 // use pidan\cache\Redis;
 /**
  * App 基础类
+ * @property Route      $route
+ * @property Config     $config
+ * @property Cache      $cache
+ * @property Request    $request
+ * @property Http       $http
+ * @property Console    $console
+ * @property Event      $event
+ * @property Middleware $middleware
+ * @property Log        $log
+ * @property Lang       $lang
+ * @property Db         $db
+ * @property Cookie     $cookie
+ * @property Session    $session
+ * @property Validate   $validate
  */
 class App extends Container
 {
-	const VERSION = '1.0.1';
-    /**
-     * 应用模型
-     * @var bool
-     */
-    protected $mode = '';//空为正常模型  thin瘦模型做接口  cli   swoole
-
 	/**
-	 * 应用调试模式
+	 * 应用模型
 	 * @var bool
 	 */
+	protected $mode = '';//空为正常模型  thin瘦模型做接口  cli   swoole
+
+	const VERSION = '1.0.1';
+
+	/**
+	* 应用调试模式
+	* @var bool
+	*/
 	protected $appDebug = false;
+
+
+	/**
+	* 应用开始时间
+	* @var float
+	*/
+	protected $beginTime;
+
+	/**
+	* 应用内存初始占用
+	* @var integer
+	*/
+	protected $beginMem;
+
+	
 	/**
 	 * 当前应用类库命名空间
 	 * @var string
@@ -50,13 +80,19 @@ class App extends Container
 	 * @var string
 	 */
 	protected $runtimePath = '';
-    /**
-     * 应用初始化器
-     * @var array
-     */
-    protected $initializers = [
-        'pidan\initializer\RegisterService'
-    ];
+	/**
+	* 路由定义目录
+	* @var string
+	*/
+	protected $routePath = '';
+
+	/**
+	 * 应用初始化器
+	 * @var array
+	 */
+	protected $initializers = [
+		'pidan\initializer\RegisterService'
+	];
 	/**
 	 * 注册的系统服务
 	 * @var array
@@ -89,13 +125,14 @@ class App extends Container
 		'response'                => Response::class,
 		'route'                   => Route::class,
 		'session'                 => Session::class,
-		'token'										=> Token::class,
+		'validate'                => Validate::class,
+		'token'					  => Token::class,
 		'pidan\DbManager'         => Db::class,
 		'pidan\LogManager'        => Log::class,
 		'pidan\CacheManager'      => Cache::class,
 		// 接口依赖注入
 		'Psr\Log\LoggerInterface' => Log::class,
-    ];
+	];
 	/**
 	 * 架构方法
 	 * @access public
@@ -104,21 +141,70 @@ class App extends Container
 	public function __construct(string $rootPath = '')
 	{
 		$this->G('AppStart');
-		$this->pidanPath   = dirname(__DIR__)  . '/';// /jetee/framework/src
-		$this->rootPath    = $rootPath ? $rootPath : dirname($this->pidanPath, 4). '/';
-		$this->appPath     = $this->rootPath . 'app' . '/';
-		$this->runtimePath = $this->rootPath . 'runtime' . '/';
+		$this->pidanPath   = realpath(dirname(__DIR__)) . DIRECTORY_SEPARATOR;// /jetee/framework/src
+		$this->rootPath    = $rootPath ? $rootPath : $this->getDefaultRootPath();//  document_root 网站根目录
+		$this->appPath     = $this->rootPath . 'app' . DIRECTORY_SEPARATOR;
+		$this->runtimePath = $this->rootPath . 'runtime' . DIRECTORY_SEPARATOR;
 
-        if (is_file($this->appPath . 'provider.php')) {
-            $this->bind(include $this->appPath . 'provider.php');
-        }
+		if (is_file($this->appPath . 'provider.php')) {
+			$this->bind(include $this->appPath . 'provider.php');
+		}
 
 		static::setInstance($this);
 
 		$this->instance('pidan\App', $this);
 		$this->instance('pidan\Container', $this); 
 	}
+	/**
+	 * 注册服务
+	 * @access public
+	 * @param Service|string $service 服务
+	 * @param bool           $force   强制重新注册
+	 * @return Service|null
+	 */
+	public function register($service, bool $force = false)
+	{
+		$registered = $this->getService($service);//已经实例化
+		if ($registered && !$force) {
+			return $registered;
+		}
+		if (is_string($service)) {
+			$service = new $service($this);
+		}
+		if (method_exists($service, 'register')) {
+			$service->register();
+		}
+		if (property_exists($service, 'bind')) {
+			$this->bind($service->bind);
+		}
+		$this->services[] = $service;
+	}
 	
+	/**
+	 * 引导应用 
+	 * @access public
+	 * @return void
+	 */
+	public function bootService(): void
+	{
+		array_walk($this->services, function ($service) {
+			if (method_exists($service, 'boot')) {
+				return $this->invoke([$service, 'boot']);
+			}
+		});
+	}
+	/**
+	 * 给定的服务已经实例化  返回实例  否则返回null  
+	 * @param string|Service $service
+	 * @return Service|null
+	 */
+	public function getService($service)
+	{
+		$name = is_string($service) ? $service : get_class($service);
+		return array_values(array_filter($this->services, function ($value) use ($name) {
+			return $value instanceof $name;
+		}, ARRAY_FILTER_USE_BOTH))[0] ?? null;
+	}
 	/**
 	 * 开启应用调试模式
 	 * @access public
@@ -140,27 +226,27 @@ class App extends Container
 	{
 		return $this->appDebug;
 	}
-    /**
-     * 设置应用模型
-     * @access public
-     * @param string $mode 应用模型
-     * @return $this
-     */
-    public function setMode(string $mode)
-    {
-        $this->mode = $mode;
-        return $this;
-    }
+	/**
+	 * 设置应用模型
+	 * @access public
+	 * @param string $mode 应用模型
+	 * @return $this
+	 */
+	public function setMode(string $mode)
+	{
+		$this->mode = $mode;
+		return $this;
+	}
 
-    /**
-     * 获取应用模型
-     * @access public
-     * @return string
-     */
-    public function getMode(): string
-    {
-        return $this->mode;
-    }
+	/**
+	 * 获取应用模型
+	 * @access public
+	 * @return string
+	 */
+	public function getMode(): string
+	{
+		return $this->mode;
+	}
 	/**
 	 * 设置应用命名空间
 	 * @access public
@@ -250,55 +336,23 @@ class App extends Container
 		return $this->pidanPath;
 	}
 	/**
-	 * 是否运行在命令行下
-	 * @return bool
-	 */
-	public function runningInConsole(): bool
+	* 获取应用开启时间
+	* @access public
+	* @return float
+	*/
+	public function getBeginTime(): float
 	{
-		return php_sapi_name() === 'cli' || php_sapi_name() === 'phpdbg';
+		return $this->beginTime;
 	}
-    /**
-     * 设置初始化服务
-     * @param array $initializers
-     */
-    public function setInitializers(array $initializers)
-    {
-        $this->initializers = $initializers;
-        return $this;
-    }
 
 	/**
-	 * 引导应用 
-	 * @access public
-	 * @return void
-	 */
-	public function bootService(): void
+	* 获取应用初始内存占用
+	* @access public
+	* @return integer
+	*/
+	public function getBeginMem(): int
 	{
-		array_walk($this->services, function ($service) {
-			if (method_exists($service, 'boot')) {
-				return $this->invoke([$service, 'boot']);
-			}
-		});
-	}
-	/**
-	 * 处理事件配置文件 app/event.php
-	 * @access protected
-	 * @param array $event 事件数据
-	 * @return void
-	 */
-	public function loadEvent(array $event): void
-	{
-		if (isset($event['bind'])) {
-			$this->event->bind($event['bind']);
-		}
-
-		if (isset($event['listen'])) {
-			$this->event->listenEvents($event['listen']);
-		}
-
-		if (isset($event['subscribe'])) {
-			$this->event->subscribe($event['subscribe']);
-		}
+		return $this->beginMem;
 	}
 	/**
 	 * 初始化应用
@@ -308,6 +362,9 @@ class App extends Container
 	public function initialize()
 	{
 		$this->initialized = true;
+		
+		$this->beginTime = $_SERVER['REQUEST_TIME_FLOAT'];
+		$this->beginMem  = memory_get_usage();
 
 		$this->debugModeInit();
 
@@ -318,23 +375,32 @@ class App extends Container
 
 		date_default_timezone_set($this->config->get('app.default_timezone'));
 
-        // 初始化
-        foreach ($this->initializers as $initializer) {
-            $this->make($initializer)->init($this);
-        }
+		// 初始化
+		foreach ($this->initializers as $initializer) {
+			$this->make($initializer)->init($this);
+		}
 
 		$this->bootService();
 		$this->G('initialized');
 		return $this;
 	}
+	/**
+	 * 设置初始化服务
+	 * @param array $initializers
+	 */
+	public function setInitializers(array $initializers)
+	{
+		$this->initializers = $initializers;
+		return $this;
+	}
 
-    /**
-     * 加载应用文件和配置
-     * @access protected
-     * @return void
-     */
-    public function load(): void
-    {
+	/**
+	 * 加载应用文件和配置
+	 * @access protected
+	 * @return void
+	 */
+	public function load(): void
+	{
 		include_once $this->pidanPath . 'helper.php';
 
 		if (is_file($this->appPath . 'common.php')) {//加载应用函数
@@ -342,6 +408,7 @@ class App extends Container
 		}
 
 		$this->config->load($this->appPath.'config.php');
+		$this->config->load($this->appPath.'config_user.php');
 
 		if (is_file($this->appPath . 'event.php')) {
 			$this->loadEvent(include $this->appPath . 'event.php');
@@ -353,43 +420,9 @@ class App extends Container
 				$this->register($service);
 			}
 		}
-    }
-	/**
-	 * 注册服务
-	 * @access public
-	 * @param Service|string $service 服务
-	 * @param bool           $force   强制重新注册
-	 * @return Service|null
-	 */
-	public function register($service, bool $force = false)
-	{
-		$registered = $this->getService($service);//已经实例化
-		if ($registered && !$force) {
-			return $registered;
-		}
-		if (is_string($service)) {
-			$service = new $service($this);
-		}
-		if (method_exists($service, 'register')) {
-			$service->register();
-		}
-		if (property_exists($service, 'bind')) {
-			$this->bind($service->bind);
-		}
-		$this->services[] = $service;
 	}
-	/**
-	 * 给定的服务已经实例化  返回实例  否则返回null  
-	 * @param string|Service $service
-	 * @return Service|null
-	 */
-	public function getService($service)
-	{
-		$name = is_string($service) ? $service : get_class($service);
-		return array_values(array_filter($this->services, function ($value) use ($name) {
-			return $value instanceof $name;
-		}, ARRAY_FILTER_USE_BOTH))[0] ?? null;
-	}
+
+
 	/**
 	 * 调试模式设置
 	 * @access protected
@@ -411,6 +444,28 @@ class App extends Container
 			}
 		}
 	}
+	/**
+	 * 处理事件配置文件 app/event.php
+	 * @access protected
+	 * @param array $event 事件数据
+	 * @return void
+	 */
+	public function loadEvent(array $event): void
+	{
+		if (isset($event['bind'])) {
+			$this->event->bind($event['bind']);
+		}
+
+		if (isset($event['listen'])) {
+			$this->event->listenEvents($event['listen']);
+		}
+
+		if (isset($event['subscribe'])) {
+			$this->event->subscribe($event['subscribe']);
+		}
+	}
+
+
 
 	/**
 	 * 解析应用类的类名
@@ -428,7 +483,23 @@ class App extends Container
 
 		return $this->namespace . '\\' . $layer . '\\' . $path . $class;
 	}
-
+	/**
+	 * 是否运行在命令行下
+	 * @return bool
+	 */
+	public function runningInConsole(): bool
+	{
+		return php_sapi_name() === 'cli' || php_sapi_name() === 'phpdbg';
+	}
+    /**
+     * 获取应用根目录
+     * @access protected
+     * @return string
+     */
+    protected function getDefaultRootPath(): string
+    {
+        return dirname($this->pidanPath, 4) . DIRECTORY_SEPARATOR;
+    }
 	/**
 	 * 设置和获取统计数据
 	 * 使用方法:
@@ -475,9 +546,10 @@ class App extends Container
 	 * @param integer|string $dec 小数位或者m 
 	 * @return mixed
 	 */
-	function G($start,$end='',$dec=5,$ttl=0) {
-		$_info       =   APCU_PREFIX.'g_info_';	
-		$_mem        =   APCU_PREFIX.'g_mem_';
+	function G($start,$end='',$dec=5,$ttl=0) {return;
+		$pre=defined('APCU_PREFIX') ?APCU_PREFIX:'';
+		$_info       =   $pre.'g_info_';
+		$_mem        =   $pre.'g_mem_';
 		if($end===null){
 			//return count($_mem);
 			apcu_delete($_info.$start);
