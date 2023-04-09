@@ -384,6 +384,14 @@ class App extends Container
 		$this->G('initialized');
 		return $this;
 	}
+    /**
+     * 是否初始化过
+     * @return bool
+     */
+    public function initialized()
+    {
+        return $this->initialized;
+    }	
 	/**
 	 * 设置初始化服务
 	 * @param array $initializers
