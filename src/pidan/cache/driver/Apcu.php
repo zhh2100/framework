@@ -15,10 +15,10 @@ class Apcu extends Driver
      * @var array
      */
     protected $options = [
-        'expire'     => 0,
+        /*'expire'     => 0,
         'prefix'     => '',
         'tag_prefix' => 'tag:',
-        'serialize'  => [],
+        'serialize'  => [],*/
     ];
 
     /**
@@ -83,7 +83,7 @@ class Apcu extends Driver
         $key    = $this->getCacheKey($name);
         $expire = $this->getExpireTime($expire);
 
-        apcu_store($key, $value, (int) $expire);
+        apcu_store($key, $value,  $expire);
 
         return true;
     }
@@ -184,7 +184,8 @@ class Apcu extends Driver
     {
         $name = $this->getTagKey($tag);
         $key  = $this->getCacheKey($name);
-        return apcu_fetch($key);
+
+        return apcu_fetch($key) ?: [];
     }
 
 }

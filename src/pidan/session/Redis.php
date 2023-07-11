@@ -32,11 +32,10 @@ class Redis{
 
 		//如果不存在  创建cookie与session
 		if(empty($id) || !$handler->exists($id)) {
-
-            $count=0;
-            do{
-                if(empty($id) || $count>0)$id=$config['prefix'].bin2hex(random_bytes(8));
-                $count++;
+			$count=0;
+			do{
+					if(empty($id) || $count>0)$id=$config['prefix'].bin2hex(random_bytes(8));
+					$count++;
 			}while($handler->exists($id));
 
 			$handler->hmset($id,array('a'=>'1'));
@@ -54,7 +53,7 @@ class Redis{
 	public function getId(){
 		return $this->id;
 	}
-	public function getxpire(){
+	public function getExpire(){
 		return $this->expire;
 	}
 	/**
@@ -68,7 +67,7 @@ class Redis{
 	* @return mixed 0修改成功   1新增成功  false失败
 	*/
  	public function set($key, $value) {
-		return $this->handler->hset($this->id,$key,$value);//0修改成功   1新增成功  false失败
+		return $this->handler->hset($this->id,$key,serialize($value));//0修改成功   1新增成功  false失败
 	}
 	public function delete($key){
 		return $this->handler->hdel($this->id,$key);//成功1  失败0
@@ -79,7 +78,7 @@ class Redis{
 	* @return mixed 0修改成功   1新增成功  false失败
 	*/	
 	public function get($key) {
-		return $this->handler->hget($this->id,$key);//没有值为false
+		return unserialize($this->handler->hget($this->id,$key));//没有值为false
 	}
  	public function has($key) {
 		return $this->handler->hexists($this->id,$key);//成功true  失败false
@@ -94,7 +93,7 @@ class Redis{
 	public function pull($key) {
 		$return=$this->handler->hget($this->id,$key);
 		$this->delete($this->id,$key);
-		return $return;//没有值为false
+		return unserialize($return);//没有值为false
 	}
 
 	//取所有字段名

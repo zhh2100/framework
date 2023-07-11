@@ -65,7 +65,6 @@ abstract class Driver implements CacheInterface
                 ->add($expire)
                 ->format('U') - time();
         }
-
         return (int) $expire;
     }
 

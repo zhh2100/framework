@@ -4,9 +4,9 @@ declare (strict_types = 1);
 namespace pidan\initializer;
 
 use pidan\App;
-use pidan\service\ModelService;
-//use pidan\service\PaginatorService;
-use pidan\service\ValidateService;
+#use pidan\service\ModelService;
+#use pidan\service\PaginatorService;
+#use pidan\service\ValidateService;
 
 /**
  * 注册系统服务
@@ -16,8 +16,8 @@ class RegisterService
 
     protected $services = [
         #PaginatorService::class,
-        ValidateService::class,
-        ModelService::class,
+        #ValidateService::class,
+        #ModelService::class,
     ];
 
     public function init(App $app)

@@ -15,28 +15,7 @@ class Lang
 	 * 配置参数
 	 * @var array
 	 */
-	protected $config = [
-			// 默认语言
-			'default_lang'    => 'zh-cn',
-			// 允许的语言列表
-			'allow_lang_list' => [],
-			// 是否使用Cookie记录
-			'use_cookie'      => true,
-			// 扩展语言包
-			'extend_list'     => [],
-			// 多语言cookie变量
-			'cookie_var'      => 'pidan_lang',
-			// 多语言header变量
-			'header_var'      => 'pidan-lang',
-			// 多语言自动侦测变量名
-			'detect_var'      => 'lang',
-			// Accept-Language转义为对应语言包名称
-			'accept_language' => [
-					'zh-hans-cn' => 'zh-cn',
-			],
-			// 是否支持语言分组
-			'allow_group'     => false,
-	];
+	protected $config = [];
 
 	/**
 	 * 多语言信息
@@ -63,15 +42,23 @@ class Lang
 	 */
 	public function __construct(array $config = [])
 	{
-		$this->config = array_merge($this->config, array_change_key_case($config));
-		$this->range  = $this->config['default_lang'];
-		$this->setApcuPrefix('la_');
+		$this->config = $config;
+		$this->range  = $config['default_lang'];
+		$this->setApcuPrefix($config['prefix']);
 		$this->app=app();
+
+		//自动侦测设置获取语言
+		$cookie=$this->app->make('cookie');
+		$langset = $this->detect();
+		$this->switchLangSet($langset);
+		if ($this->config['use_cookie'] && $cookie->get($this->config['cookie_var']) != $langset){
+			$cookie->set($this->config['cookie_var'], $langset);
+		}
 	}
 
-	public static function __make(Config $config)
+	public static function __make()
 	{
-		return new static($config->get('lang'));
+		return new static(app('config')->get('lang'));
 	}
 	/**
 	 * 获取当前语言配置
@@ -100,7 +87,7 @@ class Lang
 	 */
 	public function setApcuPrefix($apcuPrefix)
 	{
-        $this->apcuPrefix = ini_get('apc.enabled') && defined('APCU_PREFIX') ? APCU_PREFIX.$apcuPrefix : null;
+        $this->apcuPrefix = defined('APCU_PREFIX') ? $apcuPrefix : null;
 		return $this;
 	}
 	/**
@@ -137,19 +124,18 @@ class Lang
 
 		$this->setLangSet($langset);
 
-		// 加载系统语言包
-		$this->load([
-			$this->app->getPidanPath() . 'pidan/lang/'  . $langset . '.php'
-		]);
 
-		// 加载应用语言包
-		$files = glob($this->app->getAppPath() . 'lang' . DIRECTORY_SEPARATOR . $langset . '.*');
-		$this->load($files);
+		$this->load([
+			$this->app->getPidanPath() . 'pidan/lang/'  . $langset . '.php' //加载系统语言包  vendor/pidan/lang/en.php
+			,$this->app->getBasePath() . 'lang/'  . $langset . '.php'//整站通用   app/lang/en.php
+			,$this->app->getBasePath() . 'lang/'  . $langset . '-base.php'//整站通用   app/lang/en-base.php
+			,$this->app->getAppPath() . 'lang/' .  $langset . '.php' //应用语言包	 app/admin/lang/en.php
+		]);
 
 		// 加载扩展（自定义）语言包
 		$list = $this->app->config->get('lang.extend_list', []);
 
-		if (isset($list[$langset])) {
+		if (!empty($list[$langset])) {
 				$this->load($list[$langset]);
 		}
 	}
@@ -222,7 +208,7 @@ class Lang
 			}
 			$result=isset($result) && is_array($result) ? array_change_key_case($result) : [];
 			if (!is_null($this->apcuPrefix)) {
-				apcu_store($this->apcuPrefix.$file,  $result);
+				apcu_store($this->apcuPrefix.$file,  $result,86400);
 			}
 		}
 
@@ -301,4 +287,48 @@ class Lang
 		return $value;
 	}
 
+    /**
+     * 自动侦测设置获取语言选择
+     * @access protected
+     * @param Request $request
+     * @return string
+     */
+    protected function detect(): string
+    {
+    	$request=$this->app->request;
+        // 自动侦测设置获取语言选择
+        $langSet = '';
+
+        if ($request->get($this->config['detect_var'])) {
+            // url中设置了语言变量
+            $langSet = $request->get($this->config['detect_var']);
+        } elseif ($request->header($this->config['header_var'])) {
+            // Header中设置了语言变量
+            $langSet = $request->header($this->config['header_var']);
+        } elseif ($request->cookie($this->config['cookie_var'])) {
+            // Cookie中设置了语言变量
+            $langSet = $request->cookie($this->config['cookie_var']);
+        } elseif ($request->server('HTTP_ACCEPT_LANGUAGE')) {
+            // 自动侦测浏览器语言
+            $langSet = $request->server('HTTP_ACCEPT_LANGUAGE');
+        }
+
+        if (preg_match('/^([a-z\d\-]+)/i', $langSet, $matches)) {
+            $langSet = strtolower($matches[1]);
+            if (isset($this->config['accept_language'][$langSet])) {
+                $langSet = $this->config['accept_language'][$langSet];
+            }
+        } else {
+            $langSet = $this->getLangSet();
+        }
+
+        if (empty($this->config['allow_lang_list']) || in_array($langSet, $this->config['allow_lang_list'])) {
+            // 合法的语言
+            $this->setLangSet($langSet);
+        } else {
+            $langSet = $this->getLangSet();
+        }
+
+        return $langSet;
+    }
 }

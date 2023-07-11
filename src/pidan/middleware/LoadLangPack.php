@@ -29,7 +29,7 @@ class LoadLangPack
     }
 
     /**
-     * 路由初始化（路由规则注册）
+     * 中间件初始化
      * @access public
      * @param Request $request
      * @param Closure $next
@@ -38,14 +38,11 @@ class LoadLangPack
     public function handle($request, Closure $next)
     {
         $cookie=$this->app->make('cookie');
-        // 自动侦测当前语言
-        $langset = $this->detect($request);
-
+        $langset = $this->detect();
         $this->lang->switchLangSet($langset);
-
-        if ($this->config['use_cookie'] && $cookie->get($this->config['cookie_var']) != $langset){          
+        if ($this->config['use_cookie'] && $cookie->get($this->config['cookie_var']) != $langset){
             $cookie->set($this->config['cookie_var'], $langset);
-        } 
+        }
 
         return $next($request);
     }
@@ -56,8 +53,9 @@ class LoadLangPack
      * @param Request $request
      * @return string
      */
-    protected function detect(Request $request): string
+    protected function detect(): string
     {
+    	$request=app('request');
         // 自动侦测设置获取语言选择
         $langSet = '';
 

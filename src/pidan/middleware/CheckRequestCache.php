@@ -44,34 +44,32 @@ class CheckRequestCache
 	 */
 	public function handle(Request $request, Closure $next)
 	{
-		if ($request->isGet()) {
-			$cache=true;
+		if ($request->isGet() && false !== $cache) {
 			if (false === $this->config['request_cache_key']) {
 				// 关闭当前缓存
 				$cache = false;
-			}else{
-				$key    = $this->config['request_cache_key'];
-				$expire = $this->config['request_cache_expire'];
-				$tag    = $this->config['request_cache_tag'];
-				foreach ($this->config['request_cache_except'] as $rule) {
-					if (0 === stripos($request->url(), $rule)) {
-						$cache=false;
-						break;
-					}
-				}
 			}
-			
+
+			$cache = $cache ?? $this->getRequestCache($request);
+
 			if ($cache) {
 				$request->requestCache=true;
+				if (is_array($cache)) {
+                    [$key, $expire, $tag] = array_pad($cache, 3, '');
+                } else {
+                    $key    = md5($request->url(true));
+                    $expire = $cache;
+                    $tag    = '';
+                }
+
 				$key = $this->parseCacheKey($request, $key);
 
 				if (strtotime($request->server('HTTP_IF_MODIFIED_SINCE', '')) + $expire > $request->server('REQUEST_TIME')) {
 					// 读取缓存
 					return Response::create()->code(304);
-				} elseif (($hit = app('cache')->get($tag.$key)) !== null) {
+				} elseif (($hit = app('cache')->get($key)) !== null) {
 					[$content, $header, $when] = $hit;
 					if (null === $expire || $when + $expire > $request->server('REQUEST_TIME')) {
-						ob_end_clean();
 						return Response::create($content)->header($header);
 					}
 				}
@@ -92,6 +90,27 @@ class CheckRequestCache
 		return $response;
 	}
 
+    /**
+     * 读取当前地址的请求缓存信息
+     * @access protected
+     * @param Request $request
+     * @return mixed
+     */
+    protected function getRequestCache($request)
+    {
+        $key    = $this->config['request_cache_key'];
+        $expire = $this->config['request_cache_expire'];
+        $except = $this->config['request_cache_except'];
+        $tag    = $this->config['request_cache_tag'];
+
+        foreach ($except as $rule) {
+            if (0 === stripos($request->url(), $rule)) {
+                return;
+            }
+        }
+
+        return [$key, $expire, $tag];
+    }
 
 	/**
 	 * 读取当前地址的请求缓存信息   
@@ -116,24 +135,31 @@ class CheckRequestCache
 			$key = '__URL__';
 		}
 		//带|函数取
-		elseif (strpos($key, '|')) {
+		elseif (str_contains($key, '|')) {
 			[$key, $fun] = explode('|', $key);
 		}
 
 		// 特殊规则替换
-		if (false !== strpos($key, '__')) {
+		if (false !== str_contains($key, '__')) {
 			$key = str_replace(['__CONTROLLER__', '__ACTION__', '__URL__'], [$request->controller(), $request->action(), md5($request->url(true))], $key);
 		}
 		//配置:key从param中取     
-		if (false !== strpos($key, ':')) {
+		if (false !== str_contains($key, ':')) {
 			$param = $request->param();
 
 			foreach ($param as $item => $val) {
-				if (is_string($val) && false !== strpos($key, ':' . $item)) {//key中包含键名   用值取代   如是$key='111:username'  $item='username'  $val='xxxxx'   结果为111xxxx 
+				if (is_string($val) && false !== str_contains($key, ':' . $item)) {//key中包含键名   用值取代   如是$key='111:username'  $item='username'  $val='xxxxx'   结果为111xxxx 
 					$key = str_replace(':' . $item, (string) $val, $key);
 				}
 			}
-		} 
+		} elseif (str_contains($key, ']')) {
+            if ('[' . $request->ext() . ']' == $key) {
+                // 缓存某个后缀的请求
+                $key = md5($request->url());
+            } else {
+                return;
+            }
+        }
 
 
 		if (isset($fun)) {

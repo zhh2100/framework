@@ -59,6 +59,11 @@ class Schema extends Command
                     continue;
                 }
                 $class = '\\' . $namespace . '\\model\\' . pathinfo($file, PATHINFO_FILENAME);
+                
+                if (!class_exists($class)) {
+                    continue;
+                }
+                
                 $this->buildModelSchema($class);
             }
         }

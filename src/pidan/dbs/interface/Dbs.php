@@ -7,17 +7,17 @@ interface Dbs
     /**
      * 开始事务
      */
-    public function beginTrans();
+    public function startTrans();
 
     /**
      * 提交事务
      */
-    public function commitTrans();
+    public function commit();
 
     /**
      * 事务回滚
      */
-    public function rollBackTrans();
+    public function rollback();
 
     /**
      * 关闭连接

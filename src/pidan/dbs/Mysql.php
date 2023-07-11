@@ -79,19 +79,27 @@ class Mysql //implements Dbs
 			}
 		}
 	}
+	public function startTrans()
+	{
+		$this->beginTrans();
+	}
+
 
 	/**
 	 * 提交事务
 	 */
+	public function commit()
+	{
+		return $this->pdo->commit();
+	}
 	public function commitTrans()
 	{
 		return $this->pdo->commit();
 	}
-
 	/**
 	 * 事务回滚
 	 */
-	public function rollBackTrans()
+	public function rollback()
 	{
 		if ($this->pdo->inTransaction()) {
 			return $this->pdo->rollBack();
@@ -140,7 +148,9 @@ class Mysql //implements Dbs
 		try {
 			$this->sQuery = @$this->pdo->prepare($query);
 			$this->success = $this->sQuery->execute($param);
-			if(app_debug()) file_put_contents('class_mysql.txt',$query."\r\n".print_r($param,1)."\r\n",FILE_APPEND);
+
+			file_put_contents('conn1.txt',$query."\r\n".print_r($param,1),FILE_APPEND);
+			#if(app_debug())  app('log')->sql($query."\r\n".print_r($param,1));
 		} catch (PDOException $e) {
 			// 服务端断开时重连一次
 			if ($e->errorInfo[1] == 2006 || $e->errorInfo[1] == 2013) {
@@ -149,13 +159,13 @@ class Mysql //implements Dbs
 				try {
 					$this->sQuery = @$this->pdo->prepare($query);
 					$this->success = $this->sQuery->execute($param);
-					if(app_debug()) file_put_contents('class_mysql_catch.txt','[重连]'.$query."\r\n".print_r($param,1)."\r\n",FILE_APPEND);
+					app('log')->sql('[重连]'.$query."\r\n".print_r($param,1));
 				} catch (PDOException $ex) {
-					$this->rollBackTrans();
+					$this->rollback();
 					throw $ex;
 				}
 			} else {
-				$this->rollBackTrans();
+				$this->rollback();
 				$msg = $e->getMessage();
 				$err_msg = "SQL:".$this->lastSQL()." ".$msg;
 				$exception = new PDOException($err_msg, (int)$e->getCode());
@@ -174,7 +184,6 @@ class Mysql //implements Dbs
 	 */
 	public function query($query = '', $params = null, $fetchmode = PDO::FETCH_ASSOC,$exec=0)
 	{
-		app()->N('db_query',1);
 		$query = $this->prefix(trim($query));
 		$this->lastSql = $query;
 		$this->execute($query, $params);
@@ -185,10 +194,8 @@ class Mysql //implements Dbs
 		if ($statement === 'select' || $statement === 'show') {
 			return $this->sQuery->fetchAll($fetchmode);
 		} elseif ($statement === 'update' || $statement === 'delete' || $statement === 'replace') {
-			app()->N('db_write',1);
 			return $this->sQuery->rowCount();
 		} elseif ($statement === 'insert') {
-			app()->N('db_write',1);
 			if ($this->sQuery->rowCount() > 0) {
 				return $this->lastInsertId();
 			}
@@ -225,7 +232,7 @@ class Mysql //implements Dbs
 	 */
 	public function row($query = '', $params = null, $fetchmode = PDO::FETCH_ASSOC)
 	{
-		$this->type = 'SELECT';
+		//$this->type = 'SELECT';
 		$this->query($query, $params, 0,1);
 		return $this->sQuery->fetch($fetchmode);
 	}
@@ -235,7 +242,7 @@ class Mysql //implements Dbs
 	 *
 	 * @param  string $query
 	 * @param  array  $params
-	 * @return string
+	 * @return mixed
 	 */
 	public function single($query = '', $params = null)
 	{
@@ -247,7 +254,7 @@ class Mysql //implements Dbs
 	/**
 	 * 返回 lastInsertId
 	 *
-	 * @return string
+	 * @return string|false
 	 */
 	public function lastInsertId()
 	{

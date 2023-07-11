@@ -41,7 +41,7 @@ class Config
 	{
 		$this->path = $path ?: '';
 		$this->ext  = $ext;
-		$this->setApcuPrefix('conf_');
+		$this->setApcuPrefix('c_');//不要随意改   影响更新
 	}
 
 	public static function __make(App $app)
@@ -55,7 +55,7 @@ class Config
 	 */
 	public function setApcuPrefix($apcuPrefix)
 	{
-        $this->apcuPrefix = ini_get('apc.enabled') && defined('APCU_PREFIX') ? APCU_PREFIX.$apcuPrefix : null;
+        $this->apcuPrefix = defined('APCU_PREFIX') ? $apcuPrefix : null;
 		return $this;
 	}
 	/**
@@ -78,7 +78,7 @@ class Config
 			}
 			$config=isset($filename) ? $this->parse($filename) :[];
 			if (!is_null($this->apcuPrefix)) {
-				apcu_store($this->apcuPrefix.$file, $config);
+				apcu_store($this->apcuPrefix.$file, $config,86400);
 			}
 		}
 		return $this->set($config, strtolower($name));

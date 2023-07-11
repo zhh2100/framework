@@ -30,7 +30,7 @@ class Apcu{
 
 		//如果不存在  创建cookie与session
 		if(empty($id) || !apcu_exists($id)) {
-            $count=0;
+			$count=0;
 			do{
 				if(empty($id) || $count>0)$id=$config['prefix'].bin2hex(random_bytes(8));//如果传来了就用
 				$count++;
@@ -50,7 +50,7 @@ class Apcu{
 	public function getId(){
 		return $this->id;
 	}
-	public function getxpire(){
+	public function getExpire(){
 		return $this->expire;
 	}
 	/**
@@ -76,14 +76,11 @@ class Apcu{
 	}
 	/**
 	* 取key值 
-	* @param string $key 标识位置
-	* @return mixed 0修改成功   1新增成功  false失败
+	* @param string $key 	标识
+	* @return mixed  false	失败
 	*/	
-	public function get($key,$default = null){
-		if(isset($this->data[$key]) && $this->data[$key]){
-			return $this->data[$key];
-		} 		
-		return $default;
+	public function get($key){
+		return isset($this->data[$key]) ? $this->data[$key] : false ;
 	}
  	public function has($key) {
         return isset($this->data[$key]);//成功true  失败false

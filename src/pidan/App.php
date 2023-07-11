@@ -126,7 +126,7 @@ class App extends Container
 		'route'                   => Route::class,
 		'session'                 => Session::class,
 		'validate'                => Validate::class,
-		'token'					  => Token::class,
+		'token'                   => Token::class,
 		'pidan\DbManager'         => Db::class,
 		'pidan\LogManager'        => Log::class,
 		'pidan\CacheManager'      => Cache::class,
@@ -147,6 +147,7 @@ class App extends Container
 		$this->runtimePath = $this->rootPath . 'runtime' . DIRECTORY_SEPARATOR;
 
 		if (is_file($this->appPath . 'provider.php')) {
+
 			$this->bind(include $this->appPath . 'provider.php');
 		}
 
@@ -554,7 +555,10 @@ class App extends Container
 	 * @param integer|string $dec 小数位或者m 
 	 * @return mixed
 	 */
-	function G($start,$end='',$dec=5,$ttl=0) {return;
+	function G($start,$end='',$dec=5,$ttl=0) {
+		if(0){
+			return;
+		}
 		$pre=defined('APCU_PREFIX') ?APCU_PREFIX:'';
 		$_info       =   $pre.'g_info_';
 		$_mem        =   $pre.'g_mem_';

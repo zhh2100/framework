@@ -3,7 +3,6 @@
 declare (strict_types = 1);
 
 namespace pidan;
-use pidan\helper\Str;
 
 /**
  * Session管理类
@@ -15,8 +14,7 @@ class Dbs
     private $handle=null;
     public function __construct() {
         // 服务注册
-        $type=($app=app())->config->get('database.default','mysql');
-        $app->bind('dbs_handle','pidan\\dbs\\' . Str::studly($type));
+		app()->bind('dbs_handle','pidan\\dbs\\Mysql');
         $this->handle=app('dbs_handle');
     }
 

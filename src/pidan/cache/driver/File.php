@@ -99,7 +99,7 @@ class File extends Driver
                 $content = gzuncompress($content);
             }
 
-            return is_string($content) ? ['content' => $content, 'expire' => $expire] : null;
+            return is_string($content) ? ['content' => (string) $content, 'expire' => $expire] : null;
         }
     }
 
@@ -166,8 +166,15 @@ class File extends Driver
             $data = gzcompress($data, 3);
         }
 
-        $data   = "<?php\n//" . sprintf('%012d', $expire) . "\n exit();?>\n" . $data;
-        $result = file_put_contents($filename, $data);
+
+        $data = "<?php\n//" . sprintf('%012d', $expire) . "\n exit();?>\n" . $data;
+
+        if (str_contains($filename, '://') && !str_starts_with($filename, 'file://')) {
+            //虚拟文件不加锁
+            $result = file_put_contents($filename, $data);
+        } else {
+            $result = file_put_contents($filename, $data, LOCK_EX);
+        }
 
         if ($result) {
             clearstatcache();

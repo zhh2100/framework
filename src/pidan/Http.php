@@ -155,21 +155,11 @@ class Http
 
 		return $this->app->middleware->pipeline()
 			->send($request)
-			/*->then(function ($request) {
-				$this->app->G('controllerBigin');
-				dispatcher();
-				$app=isset($_GET['app']) ? $_GET['app'] : 'index';
-				$act=isset($_GET['act']) ? $_GET['act'] : 'index';
-				$app=$this->app->parseClass('controller',$app);
-				$response=Response::create($this->app->invokeMethod([$app,$act]));
-				$this->app->G('controllerEnd');
-				return $response;
-			});*/
 			->then(function ($request) {
 				$this->app->G('controllerBigin');
 				$withRoute = config('app.with_route', true) ? function () {
 					//加载路由
-        				if (is_dir($$this->routePath)) {
+					if (is_dir($$this->routePath)) {
 						$files = glob($this->routePath . '*.php');
 						foreach ($files as $file) {
 							include $file;

@@ -216,6 +216,8 @@ class Validate
      */
     public function __construct()
     {
+        self::sevice();
+        
         if (!empty(static::$maker)) {
             foreach (static::$maker as $maker) {
                 call_user_func($maker, $this);
@@ -232,6 +234,19 @@ class Validate
     public static function maker(Closure $maker)
     {
         static::$maker[] = $maker;
+    }
+
+    public static function sevice()
+    {
+        static $init=false;
+        if($init===false){
+            $init=true;
+            self::maker(function (Validate $validate) {
+                $validate->setLang(app('lang'));
+                $validate->setDb(app('db'));
+                $validate->setRequest(app('request'));
+            });
+        }
     }
 
     /**
@@ -807,7 +822,7 @@ class Validate
         return !empty($value) || '0' == $value;
     }
 
-    /**
+     /**
      * 验证字段值是否为有效格式
      * @access public
      * @param mixed  $value 字段值
@@ -817,65 +832,39 @@ class Validate
      */
     public function is($value, string $rule, array $data = []): bool
     {
-        switch (Str::camel($rule)) {
-            case 'require':
-                // 必须
-                $result = !empty($value) || '0' == $value;
-                break;
-            case 'accepted':
-                // 接受
-                $result = in_array($value, ['1', 'on', 'yes']);
-                break;
-            case 'date':
-                // 是否是一个有效日期
-                $result = false !== strtotime($value);
-                break;
-            case 'activeUrl':
-                // 是否为有效的网址
-                $result = checkdnsrr($value);
-                break;
-            case 'boolean':
-            case 'bool':
-                // 是否为布尔值
-                $result = in_array($value, [true, false, 0, 1, '0', '1'], true);
-                break;
-            case 'number':
-                $result = ctype_digit((string) $value);
-                break;
-            case 'alphaNum':
-                $result = ctype_alnum($value);
-                break;
-            case 'array':
-                // 是否为数组
-                $result = is_array($value);
-                break;
-            case 'file':
-                $result = $value instanceof File;
-                break;
-            case 'image':
-                $result = $value instanceof File && in_array($this->getImageType($value->getRealPath()), [1, 2, 3, 6]);
-                break;
-            case 'token':
-                $result = $this->token($value, '__token__', $data);
-                break;
-            default:
-                if (isset($this->type[$rule])) {
-                    // 注册的验证规则
-                    $result = call_user_func_array($this->type[$rule], [$value]);
-                } elseif (function_exists('ctype_' . $rule)) {
-                    // ctype验证规则
-                    $ctypeFun = 'ctype_' . $rule;
-                    $result   = $ctypeFun($value);
-                } elseif (isset($this->filter[$rule])) {
-                    // Filter_var验证规则
-                    $result = $this->filter($value, $this->filter[$rule]);
-                } else {
-                    // 正则验证
-                    $result = $this->regex($value, $rule);
-                }
-        }
+        $call = function ($value, $rule) {
+            if (isset($this->type[$rule])) {
+                // 注册的验证规则
+                $result = call_user_func_array($this->type[$rule], [$value]);
+            } elseif (function_exists('ctype_' . $rule)) {
+                // ctype验证规则
+                $ctypeFun = 'ctype_' . $rule;
+                $result   = $ctypeFun($value);
+            } elseif (isset($this->filter[$rule])) {
+                // Filter_var验证规则
+                $result = $this->filter($value, $this->filter[$rule]);
+            } else {
+                // 正则验证
+                $result = $this->regex($value, $rule);
+            }
+            return $result;
+        };
 
-        return $result;
+        return match (Str::camel($rule)) {
+            'require'   =>  !empty($value) || '0' == $value, // 必须
+            'accepted'  =>  in_array($value, ['1', 'on', 'yes']), // 接受
+            'date'      =>  false !== strtotime($value),                // 是否是一个有效日期
+            'activeUrl' =>  checkdnsrr($value), // 是否为有效的网址
+            'boolean','bool'    =>  in_array($value, [true, false, 0, 1, '0', '1'], true),                // 是否为布尔值
+            'number'    =>  ctype_digit((string) $value),
+            'alphaNum'  =>  ctype_alnum($value),
+            'array'     =>  is_array($value),                // 是否为数组
+            'string'    =>  is_string($value),
+            'file'      =>  $value instanceof File,
+            'image'     =>  $value instanceof File && in_array($this->getImageType($value->getRealPath()), [1, 2, 3, 6]),
+            'token'     =>  $this->token($value, '__token__', $data),
+            default     =>  $call($value, $rule),
+        };
     }
 
     // 判断图像类型
@@ -982,6 +971,43 @@ class Validate
 
         return in_array(strtolower($file->getMime()), $mime);
     }
+
+    /**
+     * 检测是否以某个字符串开头
+     * @access public
+     * @param mixed $value 字段值
+     * @param string $rule  验证规则
+     * @return bool
+     */
+    public function startWith($value, string $rule): bool
+    {
+        return is_string($value) && str_starts_with($value, $rule);
+    }
+
+    /**
+     * 检测是否以某个字符串结尾
+     * @access public
+     * @param mixed $value 字段值
+     * @param string $rule  验证规则
+     * @return bool
+     */
+    public function endWith($value, string $rule): bool
+    {
+        return is_string($value) && str_ends_with($value, $rule);
+    }
+
+    /**
+     * 检测是否以包含某个字符串
+     * @access public
+     * @param mixed $value 字段值
+     * @param string $rule  验证规则
+     * @return bool
+     */
+    public function contain($value, string $rule): bool
+    {
+        return is_string($value) && str_contains($value, $rule);
+    }
+
 
     /**
      * 验证上传文件后缀
