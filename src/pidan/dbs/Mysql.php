@@ -64,7 +64,7 @@ class Mysql //implements Dbs
 	/**
 	 * 开始事务
 	 */
-	public function beginTrans()
+	public function startTrans()
 	{
 		try {
 			return $this->pdo->beginTransaction();
@@ -79,9 +79,9 @@ class Mysql //implements Dbs
 			}
 		}
 	}
-	public function startTrans()
+	public function beginTrans()
 	{
-		$this->beginTrans();
+		$this->startTrans();
 	}
 
 
@@ -232,7 +232,6 @@ class Mysql //implements Dbs
 	 */
 	public function row($query = '', $params = null, $fetchmode = PDO::FETCH_ASSOC)
 	{
-		//$this->type = 'SELECT';
 		$this->query($query, $params, 0,1);
 		return $this->sQuery->fetch($fetchmode);
 	}

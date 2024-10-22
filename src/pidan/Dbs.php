@@ -5,7 +5,7 @@ declare (strict_types = 1);
 namespace pidan;
 
 /**
- * Session管理类
+ * 管理类
  * @package pidan
  * @mixin Store
  */

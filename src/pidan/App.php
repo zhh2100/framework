@@ -556,8 +556,8 @@ class App extends Container
 	 * @return mixed
 	 */
 	function G($start,$end='',$dec=5,$ttl=0) {
-		if(0){
-			return;
+		if(!$this->appDebug){
+			return;//部属环境不运行
 		}
 		$pre=defined('APCU_PREFIX') ?APCU_PREFIX:'';
 		$_info       =   $pre.'g_info_';
